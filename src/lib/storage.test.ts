@@ -17,7 +17,7 @@ function profileInput(name = 'Alex') {
     preferredUnit: 'kg' as const,
     heightCm: 170,
     birthDate: '1990-01-15',
-    gender: 'prefer-not-to-say' as const,
+    gender: 'male' as const,
     currentWeightKg: 80,
     baselineBodyFatPercent: 25,
     goalWeightKg: 70,
@@ -88,9 +88,27 @@ describe('tracker data rules', () => {
     }))
 
     const migrated = loadState()
-    expect(migrated.schemaVersion).toBe(3)
+    expect(migrated.schemaVersion).toBe(4)
     expect(migrated.profiles[0].name).toBe('Existing person')
     expect(migrated.profiles[0].entries[0].weightKg).toBe(80)
     expect(migrated.profiles[0].baselineEntryId).toBe('legacy-entry')
+  })
+
+  it('clears legacy gender values when migrating version-three data', () => {
+    window.localStorage.setItem('balik-alindog-tracker:v1', JSON.stringify({
+      schemaVersion: 3,
+      theme: 'system',
+      activeProfileId: 'legacy-profile',
+      profiles: [{
+        ...createProfile(profileInput('Legacy person')),
+        id: 'legacy-profile',
+        gender: 'prefer-not-to-say',
+      }],
+    }))
+
+    const migrated = loadState()
+    expect(migrated.schemaVersion).toBe(4)
+    expect(migrated.profiles[0].name).toBe('Legacy person')
+    expect(migrated.profiles[0].gender).toBeUndefined()
   })
 })

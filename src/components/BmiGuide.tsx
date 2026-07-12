@@ -13,7 +13,7 @@ function markerPosition(bmi: number): string {
 }
 
 function genderLabel(gender: NonNullable<Profile['gender']>): string {
-  return { female: 'Female', male: 'Male', nonbinary: 'Non-binary', 'prefer-not-to-say': 'Gender not specified' }[gender]
+  return { female: 'Female', male: 'Male' }[gender]
 }
 
 export function BmiGuide({ profile, onCompleteBaseline }: Props) {

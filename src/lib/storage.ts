@@ -5,7 +5,7 @@ export const STORAGE_KEY = 'balik-alindog-tracker:v1'
 export const MAX_PROFILES = 10
 
 export const initialState: AppState = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   theme: 'system',
   activeProfileId: null,
   profiles: [],
@@ -20,6 +20,25 @@ interface LegacyAppState {
 
 interface VersionTwoAppState extends Omit<AppState, 'schemaVersion'> {
   schemaVersion: 2
+}
+
+interface VersionThreeAppState extends Omit<AppState, 'schemaVersion'> {
+  schemaVersion: 3
+}
+
+function isGender(value: unknown): value is Gender {
+  return value === 'female' || value === 'male'
+}
+
+function assertGender(value: Gender): void {
+  if (!isGender(value)) throw new Error('Gender must be Male or Female.')
+}
+
+function sanitizeProfileGender<T extends { gender?: unknown }>(profile: T): T & { gender?: Gender } {
+  return {
+    ...profile,
+    gender: isGender(profile.gender) ? profile.gender : undefined,
+  }
 }
 
 function assertWeight(weightKg: number): void {
@@ -61,7 +80,7 @@ function assertBirthDate(birthDate: string): void {
 
 function migrateLegacyState(state: LegacyAppState): AppState {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     theme: state.theme,
     activeProfileId: state.activeProfileId,
     profiles: state.profiles.map((profile) => ({
@@ -72,7 +91,19 @@ function migrateLegacyState(state: LegacyAppState): AppState {
 }
 
 function migrateVersionTwoState(state: VersionTwoAppState): AppState {
-  return { ...state, schemaVersion: 3 }
+  return {
+    ...state,
+    schemaVersion: 4,
+    profiles: state.profiles.map(sanitizeProfileGender),
+  }
+}
+
+function migrateVersionThreeState(state: VersionThreeAppState): AppState {
+  return {
+    ...state,
+    schemaVersion: 4,
+    profiles: state.profiles.map(sanitizeProfileGender),
+  }
 }
 
 function validateState(state: AppState): AppState {
@@ -86,7 +117,7 @@ function validateState(state: AppState): AppState {
     if (profile.heightCm !== undefined) assertHeight(profile.heightCm)
     if (profile.birthDate !== undefined) assertBirthDate(profile.birthDate)
     else if (profile.age !== undefined) assertAge(profile.age)
-    if (profile.gender !== undefined && !['female', 'male', 'nonbinary', 'prefer-not-to-say'].includes(profile.gender)) throw new Error('Backup contains an invalid gender.')
+    if (profile.gender !== undefined && !isGender(profile.gender)) throw new Error('Backup contains an invalid gender.')
     if (!Array.isArray(profile.entries)) throw new Error('Backup contains invalid measurements.')
     const dates = new Set<string>()
     for (const entry of profile.entries) {
@@ -105,11 +136,12 @@ function validateState(state: AppState): AppState {
 
 function parseState(value: unknown): AppState {
   if (!value || typeof value !== 'object') throw new Error('Backup is not valid tracker data.')
-  const candidate = value as AppState | VersionTwoAppState | LegacyAppState
+  const candidate = value as AppState | VersionThreeAppState | VersionTwoAppState | LegacyAppState
   if (!Array.isArray(candidate.profiles)) throw new Error('Backup is not valid tracker data.')
   if (candidate.schemaVersion === 1) return validateState(migrateLegacyState(candidate))
   if (candidate.schemaVersion === 2) return validateState(migrateVersionTwoState(candidate))
-  if (candidate.schemaVersion === 3) return validateState(candidate)
+  if (candidate.schemaVersion === 3) return validateState(migrateVersionThreeState(candidate))
+  if (candidate.schemaVersion === 4) return validateState(candidate)
   throw new Error('This backup version is not supported.')
 }
 
@@ -156,6 +188,7 @@ export function createProfile(input: {
   if (!input.name.trim()) throw new Error('A profile name is required.')
   assertHeight(input.heightCm)
   assertBirthDate(input.birthDate)
+  assertGender(input.gender)
   assertWeight(input.currentWeightKg)
   assertBodyFat(input.baselineBodyFatPercent)
   assertWeight(input.goalWeightKg)
@@ -214,6 +247,7 @@ export function completeProfileBaseline(
 ): AppState {
   assertHeight(input.heightCm)
   assertBirthDate(input.birthDate)
+  assertGender(input.gender)
   assertBodyFat(input.bodyFatPercent)
   if (input.currentWeightKg !== undefined) assertWeight(input.currentWeightKg)
 
@@ -247,6 +281,7 @@ export function updateProfileDetails(
   if (!input.name.trim()) throw new Error('A profile name is required.')
   assertHeight(input.heightCm)
   assertBirthDate(input.birthDate)
+  assertGender(input.gender)
 
   return {
     ...state,

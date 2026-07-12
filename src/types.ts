@@ -1,6 +1,6 @@
 export type Unit = 'kg' | 'lb'
 export type Theme = 'light' | 'dark' | 'system'
-export type Gender = 'female' | 'male' | 'nonbinary' | 'prefer-not-to-say'
+export type Gender = 'female' | 'male'
 
 export interface Measurement {
   id: string
@@ -27,7 +27,7 @@ export interface Profile {
 }
 
 export interface AppState {
-  schemaVersion: 3
+  schemaVersion: 4
   theme: Theme
   activeProfileId: string | null
   profiles: Profile[]

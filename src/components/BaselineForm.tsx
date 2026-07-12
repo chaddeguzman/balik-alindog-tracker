@@ -14,7 +14,7 @@ export function BaselineForm({ profile, onSubmit, onCancel }: Props) {
   const needsMeasurement = profile.entries.length === 0
   const totalInches = profile.heightCm ? profile.heightCm / 2.54 : 0
   const [birthDate, setBirthDate] = useState(profile.birthDate ?? '')
-  const [gender, setGender] = useState<Gender>(profile.gender ?? 'prefer-not-to-say')
+  const [gender, setGender] = useState<Gender | ''>(profile.gender ?? '')
   const [heightCm, setHeightCm] = useState(profile.heightCm?.toFixed(1) ?? '')
   const [heightFeet, setHeightFeet] = useState(profile.heightCm ? String(Math.floor(totalInches / 12)) : '')
   const [heightInches, setHeightInches] = useState(profile.heightCm ? (totalInches % 12).toFixed(1) : '')
@@ -27,7 +27,7 @@ export function BaselineForm({ profile, onSubmit, onCancel }: Props) {
     onSubmit({
       heightCm: unit === 'kg' ? Number(heightCm) : centimetersFromFeet(Number(heightFeet), Number(heightInches || 0)),
       birthDate,
-      gender,
+      gender: gender as Gender,
       currentWeightKg: needsMeasurement ? toKilograms(Number(weight), unit) : undefined,
       bodyFatPercent: needsMeasurement && bodyFat ? Number(bodyFat) : undefined,
     })
@@ -38,7 +38,7 @@ export function BaselineForm({ profile, onSubmit, onCancel }: Props) {
       <p className="helper-text">Your existing profile and measurement history will be preserved.</p>
       <div className="form-grid">
         <label>Birthday<input autoFocus type="date" required max={todayLocal()} value={birthDate} onChange={(event) => setBirthDate(event.target.value)} /><small className="field-note">Kept in this browser to calculate age automatically.</small></label>
-        <label>Gender<select required value={gender} onChange={(event) => setGender(event.target.value as Gender)}><option value="prefer-not-to-say">Prefer not to say</option><option value="female">Female</option><option value="male">Male</option><option value="nonbinary">Non-binary</option></select></label>
+        <label>Gender<select required value={gender} onChange={(event) => setGender(event.target.value as Gender)}><option value="" disabled>Select gender</option><option value="female">Female</option><option value="male">Male</option></select></label>
       </div>
       {unit === 'kg' ? (
         <label>Current height (cm)<input type="number" required min="80" max="250" step="0.1" value={heightCm} onChange={(event) => setHeightCm(event.target.value)} /></label>

@@ -6,7 +6,7 @@ The first release intentionally has no AI integration. Meal and activity suggest
 
 ## Features
 
-- Baseline setup with height, current weight, age, gender, and optional body fat
+- Baseline setup with height, birthday-derived age, required Male/Female gender, current weight, and optional body fat
 - The baseline automatically becomes the first permanent measurement
 - One permanent morning measurement per profile per calendar day
 - Weight stored canonically in kilograms and optionally displayed in pounds
@@ -16,7 +16,7 @@ The first release intentionally has no AI integration. Meal and activity suggest
 - Growth-aware messaging for children and teens instead of applying adult BMI targets
 - Up to 10 browser-local profiles without accounts
 - Light, dark, and system themes
-- Per-profile CSV export and complete JSON backup
+- Per-profile CSV export plus complete Backup and Upload restore
 - Responsive, keyboard-friendly interface
 
 ## Requirements
@@ -47,13 +47,13 @@ The production files are generated in `dist/`. To inspect them locally, run `npm
 
 ## Data and privacy
 
-All application data is saved under the current site's `localStorage`. It does not leave the browser. Data is therefore specific to the browser, device, and site address used to open the app. Clearing site data can erase it, so users should periodically select **Backup JSON**.
+All application data is saved under the current site's `localStorage`. It does not leave the browser. Data is therefore specific to the browser, device, and site address used to open the app. Clearing site data can erase it, so users should periodically select **Backup**.
 
 Measurements cannot be edited or deleted in the interface. Before saving, the app presents a permanent-save confirmation. Profile goals and preferred units remain adjustable.
 
 BMI is presented as a general screening guide, not a diagnosis or personalized medical recommendation. Adult categories and the height-based range are shown only for people age 20 or older. Profiles age 2–19 are directed toward age- and sex-specific professional guidance.
 
-JSON backup is currently export-only. Import is deliberately excluded from the first version to preserve the honest-tracking rules.
+Backups can be uploaded into another browser or workstation. Restoring a backup replaces the household data stored in that browser.
 
 ## Deployment
 

@@ -100,7 +100,7 @@ function EditProfileForm({ profile, onSave, onCancel }: { profile: Profile; onSa
   const totalInches = profile.heightCm ? profile.heightCm / 2.54 : 0
   const [name, setName] = useState(profile.name)
   const [birthDate, setBirthDate] = useState(profile.birthDate ?? '')
-  const [gender, setGender] = useState<Gender>(profile.gender ?? 'prefer-not-to-say')
+  const [gender, setGender] = useState<Gender | ''>(profile.gender ?? '')
   const [heightCm, setHeightCm] = useState(profile.heightCm?.toFixed(1) ?? '')
   const [heightFeet, setHeightFeet] = useState(profile.heightCm ? String(Math.floor(totalInches / 12)) : '')
   const [heightInches, setHeightInches] = useState(profile.heightCm ? (totalInches % 12).toFixed(1) : '')
@@ -111,7 +111,7 @@ function EditProfileForm({ profile, onSave, onCancel }: { profile: Profile; onSa
       name,
       heightCm: profile.preferredUnit === 'kg' ? Number(heightCm) : centimetersFromFeet(Number(heightFeet), Number(heightInches || 0)),
       birthDate,
-      gender,
+      gender: gender as Gender,
     })
   }
 
@@ -131,10 +131,9 @@ function EditProfileForm({ profile, onSave, onCancel }: { profile: Profile; onSa
         <label>
           Gender
           <select required value={gender} onChange={(event) => setGender(event.target.value as Gender)}>
-            <option value="prefer-not-to-say">Prefer not to say</option>
+            <option value="" disabled>Select gender</option>
             <option value="female">Female</option>
             <option value="male">Male</option>
-            <option value="nonbinary">Non-binary</option>
           </select>
         </label>
       </div>

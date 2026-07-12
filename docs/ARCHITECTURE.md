@@ -14,13 +14,13 @@ Versioned AppState
 Browser localStorage
 ```
 
-`AppState.schemaVersion` is the migration boundary. Version-one browser data is migrated to version two without discarding profiles or measurements; migrated profiles are invited to complete their missing baseline demographics. Future schema changes should follow the same explicit migration approach.
+`AppState.schemaVersion` is the migration boundary. Current data uses schema version four. Older browser data is migrated without discarding profiles or measurements; migrated profiles are invited to complete missing baseline demographics. Version-four migration also clears unsupported legacy gender values so current data only stores Male or Female. Future schema changes should follow the same explicit migration approach.
 
 ## Data invariants
 
 - A maximum of 10 profiles is allowed.
 - Each profile may have at most one measurement per local calendar date.
-- New profiles require height, age, gender, current weight, and a target weight; body fat is optional.
+- New profiles require height, birthday, Male/Female gender, current weight, and a target weight; body fat is optional.
 - A new profile's current weight is stored as its immutable baseline measurement.
 - Measurement records are append-only in the user interface.
 - Weight is stored in kilograms; pounds are a presentation conversion.

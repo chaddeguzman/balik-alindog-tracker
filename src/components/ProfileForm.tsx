@@ -24,7 +24,7 @@ export function ProfileForm({ onSubmit, onCancel }: Props) {
   const [name, setName] = useState('')
   const [unit, setUnit] = useState<Unit>('kg')
   const [birthDate, setBirthDate] = useState('')
-  const [gender, setGender] = useState<Gender>('prefer-not-to-say')
+  const [gender, setGender] = useState<Gender | ''>('')
   const [heightCm, setHeightCm] = useState('')
   const [heightFeet, setHeightFeet] = useState('')
   const [heightInches, setHeightInches] = useState('')
@@ -50,7 +50,7 @@ export function ProfileForm({ onSubmit, onCancel }: Props) {
       preferredUnit: unit,
       heightCm: resolvedHeight,
       birthDate,
-      gender,
+      gender: gender as Gender,
       currentWeightKg: toKilograms(Number(currentWeight), unit),
       baselineBodyFatPercent: baselineBodyFat ? Number(baselineBodyFat) : undefined,
       goalWeightKg: toKilograms(Number(goalWeight), unit),
@@ -72,10 +72,9 @@ export function ProfileForm({ onSubmit, onCancel }: Props) {
         <label>
           Gender
           <select required value={gender} onChange={(event) => setGender(event.target.value as Gender)}>
-            <option value="prefer-not-to-say">Prefer not to say</option>
+            <option value="" disabled>Select gender</option>
             <option value="female">Female</option>
             <option value="male">Male</option>
-            <option value="nonbinary">Non-binary</option>
           </select>
         </label>
       </div>

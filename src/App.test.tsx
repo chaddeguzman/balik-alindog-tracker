@@ -15,7 +15,7 @@ describe('Balik Alindog Tracker', () => {
     const user = userEvent.setup()
     render(<App />)
     await user.type(screen.getByLabelText(/profile name/i), 'Mika')
-    await user.type(screen.getByLabelText(/current age/i), '34')
+    await user.type(screen.getByLabelText(/birthday/i), '1992-05-10')
     await user.type(screen.getByLabelText(/current height \(cm\)/i), '165')
     await user.type(screen.getByLabelText(/current weight \(kg\)/i), '72')
     await user.type(screen.getByLabelText(/target weight \(kg\)/i), '65')
@@ -31,7 +31,7 @@ describe('Balik Alindog Tracker', () => {
       name: 'Jamie',
       preferredUnit: 'kg',
       heightCm: 168,
-      age: 42,
+      birthDate: '1984-03-20',
       gender: 'prefer-not-to-say',
       currentWeightKg: 76,
       goalWeightKg: 68,

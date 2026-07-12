@@ -15,7 +15,7 @@ function profileInput(name = 'Alex') {
     name,
     preferredUnit: 'kg' as const,
     heightCm: 170,
-    age: 35,
+    birthDate: '1990-01-15',
     gender: 'prefer-not-to-say' as const,
     currentWeightKg: 80,
     baselineBodyFatPercent: 25,
@@ -71,7 +71,7 @@ describe('tracker data rules', () => {
     }))
 
     const migrated = loadState()
-    expect(migrated.schemaVersion).toBe(2)
+    expect(migrated.schemaVersion).toBe(3)
     expect(migrated.profiles[0].name).toBe('Existing person')
     expect(migrated.profiles[0].entries[0].weightKg).toBe(80)
     expect(migrated.profiles[0].baselineEntryId).toBe('legacy-entry')

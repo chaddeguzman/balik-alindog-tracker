@@ -199,6 +199,10 @@ input::placeholder { color: var(--muted); }
 .bmi-summary-grid span { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
 .bmi-summary-grid strong { font-size: 1rem; }
 .bmi-summary-grid small { color: var(--muted); }
+.bmi-range-values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 8px 0 0; }
+.bmi-range-values div { min-width: 0; padding: 9px; border-radius: 10px; background: var(--surface); }
+.bmi-range-values dt { color: var(--muted); font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.bmi-range-values dd { margin: 3px 0 0; font-size: 0.82rem; font-weight: 800; overflow-wrap: anywhere; }
 .bmi-target-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .bmi-target-actions button { min-height: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--primary); font-size: 0.72rem; font-weight: 800; }
 .bmi-disclaimer { margin: 16px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }

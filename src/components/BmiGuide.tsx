@@ -54,6 +54,7 @@ export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: 
   }
 
   const range = adultHealthyWeightRange(profile.heightCm)
+  const middleWeightKg = (range.minKg + range.maxKg) / 2
   const category = adultBmiCategory(bmi)
   const targetBmi = calculateBmi(profile.goalWeightKg, profile.heightCm)
 
@@ -81,10 +82,14 @@ export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: 
       <div className="bmi-summary-grid">
         <div>
           <span>General healthy-weight range</span>
-          <strong>{formatWeight(range.minKg, profile.preferredUnit)} – {formatWeight(range.maxKg, profile.preferredUnit)}</strong>
+          <dl className="bmi-range-values">
+            <div><dt>Low</dt><dd>{formatWeight(range.minKg, profile.preferredUnit)}</dd></div>
+            <div><dt>Mid</dt><dd>{formatWeight(middleWeightKg, profile.preferredUnit)}</dd></div>
+            <div><dt>High</dt><dd>{formatWeight(range.maxKg, profile.preferredUnit)}</dd></div>
+          </dl>
           <div className="bmi-target-actions" aria-label="Set target weight from healthy BMI range">
             <button type="button" onClick={() => onSelectTargetWeight(range.minKg)}>Use low</button>
-            <button type="button" onClick={() => onSelectTargetWeight((range.minKg + range.maxKg) / 2)}>Use middle</button>
+            <button type="button" onClick={() => onSelectTargetWeight(middleWeightKg)}>Use middle</button>
             <button type="button" onClick={() => onSelectTargetWeight(range.maxKg)}>Use high</button>
           </div>
         </div>

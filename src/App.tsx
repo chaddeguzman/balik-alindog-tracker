@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { ProfileForm } from './components/ProfileForm'
 import { ProgressChart } from './components/ProgressChart'
+import { BaselineForm } from './components/BaselineForm'
+import { BmiGuide } from './components/BmiGuide'
 import { formatDate, todayLocal } from './lib/date'
 import { exportAllJson, exportProfileCsv } from './lib/export'
 import {
@@ -9,6 +11,7 @@ import {
   addProfile,
   createMeasurement,
   createProfile,
+  completeProfileBaseline,
   loadState,
   saveState,
   setTheme,
@@ -31,7 +34,7 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
   )
 }
 
-function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (date: string, weightKg: number, bodyFat: number) => void; onCancel: () => void }) {
+function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (date: string, weightKg: number, bodyFat?: number) => void; onCancel: () => void }) {
   const unit = profile.preferredUnit
   const [date, setDate] = useState(todayLocal())
   const [weight, setWeight] = useState('')
@@ -55,11 +58,11 @@ function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (d
         <dl className="confirmation-list">
           <div><dt>Date</dt><dd>{formatDate(date)}</dd></div>
           <div><dt>Weight</dt><dd>{Number(weight).toFixed(1)} {unit}</dd></div>
-          <div><dt>Body fat</dt><dd>{Number(bodyFat).toFixed(1)}%</dd></div>
+          <div><dt>Body fat</dt><dd>{bodyFat ? `${Number(bodyFat).toFixed(1)}%` : 'Not recorded'}</dd></div>
         </dl>
         <div className="form-actions">
           <button className="button secondary" onClick={() => setConfirming(false)}>Go back</button>
-          <button className="button primary" onClick={() => onSave(date, weightKg, Number(bodyFat))}>Save permanently</button>
+          <button className="button primary" onClick={() => onSave(date, weightKg, bodyFat ? Number(bodyFat) : undefined)}>Save permanently</button>
         </div>
       </div>
     )
@@ -78,8 +81,8 @@ function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (d
           <input autoFocus type="number" inputMode="decimal" required min={range.min} max={range.max} step={range.step} value={weight} onChange={(event) => setWeight(event.target.value)} />
         </label>
         <label>
-          Body fat (%)
-          <input type="number" inputMode="decimal" required min="2" max="70" step="0.1" value={bodyFat} onChange={(event) => setBodyFat(event.target.value)} />
+          Body fat (%) <span className="optional">Optional</span>
+          <input type="number" inputMode="decimal" min="2" max="70" step="0.1" value={bodyFat} onChange={(event) => setBodyFat(event.target.value)} />
         </label>
       </div>
       <div className="form-actions">
@@ -136,8 +139,10 @@ function SettingsForm({ profile, onSave }: { profile: Profile; onSave: (input: {
 
 function Dashboard({ profile, state, setState, notify }: { profile: Profile; state: AppState; setState: (state: AppState) => void; notify: (message: string) => void }) {
   const [entryOpen, setEntryOpen] = useState(false)
+  const [baselineOpen, setBaselineOpen] = useState(false)
   const entries = profile.entries
   const latest = entries.at(-1)
+  const latestBodyFat = [...entries].reverse().find((entry) => entry.bodyFatPercent !== undefined)
   const first = entries[0]
   const hasToday = entries.some((entry) => entry.date === todayLocal())
   const change = latest && first ? latest.weightKg - first.weightKg : 0
@@ -146,7 +151,7 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
     ? Math.max(0, Math.min(100, ((first.weightKg - latest.weightKg) / (first.weightKg - profile.goalWeightKg)) * 100))
     : 0
 
-  function saveEntry(date: string, weightKg: number, bodyFat: number) {
+  function saveEntry(date: string, weightKg: number, bodyFat?: number) {
     try {
       const next = addMeasurement(state, profile.id, createMeasurement({ date, weightKg, bodyFatPercent: bodyFat }))
       setState(next)
@@ -181,7 +186,7 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
         </article>
         <article className="metric-card">
           <span>Body fat</span>
-          <strong>{latest ? `${latest.bodyFatPercent.toFixed(1)}%` : '—'}</strong>
+          <strong>{latestBodyFat?.bodyFatPercent !== undefined ? `${latestBodyFat.bodyFatPercent.toFixed(1)}%` : '—'}</strong>
           <small>{profile.goalBodyFatPercent ? `Goal ${profile.goalBodyFatPercent.toFixed(1)}%` : 'No goal set'}</small>
         </article>
         <article className="metric-card">
@@ -196,6 +201,8 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
         </article>
       </section>
 
+      <BmiGuide profile={profile} onCompleteBaseline={() => setBaselineOpen(true)} />
+
       <ProgressChart profile={profile} />
 
       <div className="content-grid">
@@ -208,7 +215,7 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
             <div className="table-scroll"><table>
               <thead><tr><th>Date</th><th>Weight</th><th>Body fat</th></tr></thead>
               <tbody>{[...entries].reverse().slice(0, 8).map((entry) => (
-                <tr key={entry.id}><td>{formatDate(entry.date)}</td><td>{formatWeight(entry.weightKg, profile.preferredUnit)}</td><td>{entry.bodyFatPercent.toFixed(1)}%</td></tr>
+                <tr key={entry.id}><td>{formatDate(entry.date)}</td><td>{formatWeight(entry.weightKg, profile.preferredUnit)}</td><td>{entry.bodyFatPercent !== undefined ? `${entry.bodyFatPercent.toFixed(1)}%` : '—'}</td></tr>
               ))}</tbody>
             </table></div>
           ) : <p className="empty-copy">No measurements recorded yet.</p>}
@@ -225,6 +232,15 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
       </div>
 
       {entryOpen && <Modal title="Add measurement" onClose={() => setEntryOpen(false)}><EntryForm profile={profile} onSave={saveEntry} onCancel={() => setEntryOpen(false)} /></Modal>}
+      {baselineOpen && <Modal title="Complete profile baseline" onClose={() => setBaselineOpen(false)}><BaselineForm profile={profile} onCancel={() => setBaselineOpen(false)} onSubmit={(input) => {
+        try {
+          setState(completeProfileBaseline(state, profile.id, input))
+          setBaselineOpen(false)
+          notify('Baseline profile completed.')
+        } catch (error) {
+          notify(error instanceof Error ? error.message : 'Could not save the baseline.')
+        }
+      }} /></Modal>}
     </>
   )
 }
@@ -265,8 +281,8 @@ export default function App() {
         <section className="onboarding-card">
           <div className="brand-mark" aria-hidden="true">BA</div>
           <p className="eyebrow">Balik Alindog Tracker</p>
-          <h1>Build an honest picture of your progress.</h1>
-          <p className="lead">Private, simple daily tracking for weight and body-fat trends. Your data stays in this browser.</p>
+          <h1>Start your household’s health tracker.</h1>
+          <p className="lead">Create the first person’s baseline. Existing profiles will appear automatically whenever this browser returns.</p>
           <ProfileForm onSubmit={handleNewProfile} />
           <p className="privacy-note">No account. No cloud. No AI integration yet.</p>
         </section>
@@ -280,12 +296,13 @@ export default function App() {
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Balik Alindog Tracker home"><span className="brand-mark small">BA</span><span>Balik Alindog</span></a>
         <div className="header-actions">
-          <label className="profile-select"><span className="sr-only">Active profile</span>
+          <span className="household-label">Household</span>
+          <label className="profile-select"><span className="sr-only">Active household member</span>
             <select value={activeProfile.id} onChange={(event) => setState({ ...state, activeProfileId: event.target.value })}>
               {state.profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
             </select>
           </label>
-          <button className="icon-button add-person" disabled={state.profiles.length >= MAX_PROFILES} onClick={() => setProfileModal(true)} aria-label="Add another profile">+</button>
+          <button className="button compact secondary add-person" disabled={state.profiles.length >= MAX_PROFILES} onClick={() => setProfileModal(true)}><span aria-hidden="true">+</span><span className="add-person-text">Add person</span></button>
           <label className="theme-select"><span className="sr-only">Color theme</span>
             <select value={state.theme} onChange={(event) => setState(setTheme(state, event.target.value as Theme))}>
               <option value="system">System theme</option><option value="light">Light theme</option><option value="dark">Dark theme</option>
@@ -298,7 +315,7 @@ export default function App() {
         <Dashboard profile={activeProfile} state={state} setState={setState} notify={setToast} />
         <footer><span>Stored privately in this browser</span><span>•</span><span>{state.profiles.length} of {MAX_PROFILES} profiles</span><span>•</span><span>AI suggestions coming in a future release</span></footer>
       </main>
-      {profileModal && <Modal title="Create another profile" onClose={() => setProfileModal(false)}><ProfileForm onSubmit={handleNewProfile} onCancel={() => setProfileModal(false)} /></Modal>}
+      {profileModal && <Modal title="Add a household member" onClose={() => setProfileModal(false)}><ProfileForm onSubmit={handleNewProfile} onCancel={() => setProfileModal(false)} /></Modal>}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   )

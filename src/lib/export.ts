@@ -23,7 +23,7 @@ export function exportProfileCsv(profile: Profile): void {
       entry.recordedAt,
       entry.weightKg.toFixed(2),
       (entry.weightKg / 0.45359237).toFixed(2),
-      entry.bodyFatPercent.toFixed(1),
+      entry.bodyFatPercent?.toFixed(1) ?? '',
     ]),
   ]
   const csv = rows

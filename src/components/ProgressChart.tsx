@@ -26,10 +26,13 @@ export function ProgressChart({ profile }: Props) {
   const [metric, setMetric] = useState<Metric>('weight')
   const [range, setRange] = useState<Range>(30)
   const titleId = useId()
-  const entries = useMemo(() => selectEntries(profile.entries, range), [profile.entries, range])
+  const rangedEntries = useMemo(() => selectEntries(profile.entries, range), [profile.entries, range])
+  const entries = metric === 'bodyFat'
+    ? rangedEntries.filter((entry) => entry.bodyFatPercent !== undefined)
+    : rangedEntries
   const unit: Unit = profile.preferredUnit
   const values = entries.map((entry) =>
-    metric === 'weight' ? fromKilograms(entry.weightKg, unit) : entry.bodyFatPercent,
+    metric === 'weight' ? fromKilograms(entry.weightKg, unit) : entry.bodyFatPercent!,
   )
   const goal = metric === 'weight'
     ? fromKilograms(profile.goalWeightKg, unit)
@@ -71,7 +74,7 @@ export function ProgressChart({ profile }: Props) {
       {entries.length === 0 ? (
         <div className="empty-chart">
           <span aria-hidden="true">↗</span>
-          <p>Your progress graph will appear after the first measurement.</p>
+          <p>{metric === 'bodyFat' ? 'Add a body-fat measurement to see this trend.' : 'Your progress graph will appear after the first measurement.'}</p>
         </div>
       ) : (
         <div className="chart-scroll">

@@ -155,8 +155,47 @@ input::placeholder { color: var(--muted); }
 .confirmation-list dt { color: var(--muted); }
 .confirmation-list dd { margin: 0; font-weight: 700; }
 
+.form-section-heading { display: flex; align-items: center; gap: 12px; padding-top: 4px; }
+.form-section-heading > span { width: 30px; height: 30px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: var(--primary-soft); color: var(--primary); font-weight: 800; }
+.form-section-heading h3 { margin: 0 0 2px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 1rem; }
+.form-section-heading p { margin: 0; color: var(--muted); font-size: 0.78rem; }
+.short-field { width: calc(50% - 7px); }
+.height-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sticky-actions { padding-top: 4px; }
+.household-label { color: var(--muted); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+.add-person { display: inline-flex; align-items: center; gap: 6px; }
+
+.bmi-card { margin-bottom: 18px; }
+.bmi-heading { align-items: flex-start; }
+.bmi-score { display: flex; flex-direction: column; align-items: flex-end; }
+.bmi-score strong { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 2.35rem; line-height: 1; letter-spacing: -0.06em; }
+.bmi-score span { margin-top: 5px; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+.baseline-meta { margin: 6px 0 0; color: var(--muted); font-size: 0.78rem; }
+.bmi-scale { position: relative; padding-top: 31px; margin: 10px 0 24px; }
+.bmi-marker { position: absolute; top: 0; z-index: 2; width: 2px; height: 43px; background: var(--text); transform: translateX(-1px); }
+.bmi-marker::after { content: ''; position: absolute; left: -4px; bottom: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--text); border: 2px solid var(--surface); }
+.bmi-marker span { position: absolute; top: 0; left: 50%; transform: translateX(-50%); padding: 2px 6px; border-radius: 5px; background: var(--text); color: var(--surface); font-size: 0.65rem; font-weight: 800; white-space: nowrap; }
+.bmi-segments { height: 64px; display: flex; overflow: hidden; border-radius: 12px; color: #173025; }
+.bmi-segments span { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding: 8px; text-align: center; }
+.bmi-segments b { font-size: 0.72rem; }
+.bmi-segments small { font-size: 0.66rem; opacity: 0.72; }
+.bmi-segments .under { width: 17.3%; background: #cfe7f2; }
+.bmi-segments .healthy { width: 25%; background: #bce5c9; }
+.bmi-segments .over { width: 19.2%; background: #f5dda7; }
+.bmi-segments .obese { width: 38.5%; background: #efb9a9; }
+.bmi-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bmi-summary-grid > div { padding: 15px; border-radius: 13px; background: var(--surface-soft); display: flex; flex-direction: column; gap: 4px; }
+.bmi-summary-grid span { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.bmi-summary-grid strong { font-size: 1rem; }
+.bmi-summary-grid small { color: var(--muted); }
+.bmi-disclaimer { margin: 16px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.incomplete-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; background: linear-gradient(135deg, var(--surface), var(--primary-soft)); }
+.incomplete-card p:last-child { max-width: 650px; margin: 7px 0 0; color: var(--muted); }
+.child-bmi-notice { margin-bottom: 0; }
+
 .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: rgba(12, 28, 19, 0.55); backdrop-filter: blur(5px); }
 .modal { width: min(520px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 25px; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.2); }
+.modal:has(.profile-form) { width: min(760px, 100%); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
 .toast { position: fixed; right: 24px; bottom: 24px; z-index: 150; max-width: min(380px, calc(100% - 48px)); padding: 13px 18px; border-radius: 12px; background: var(--text); color: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
 
@@ -173,6 +212,7 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .content-grid { grid-template-columns: 1fr; }
   .settings-card .form-grid.three { grid-template-columns: repeat(3, 1fr); }
   .export-all { display: none; }
+  .household-label { display: none; }
 }
 
 @media (max-width: 680px) {
@@ -182,6 +222,8 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .profile-select { flex: 1; max-width: 190px; }
   .profile-select select { min-width: 0; }
   .theme-select select { width: 102px; }
+  .add-person { width: 40px; padding: 0; justify-content: center; font-size: 1.2rem; }
+  .add-person-text { display: none; }
   .main-content { width: min(100% - 28px, 1180px); padding-top: 38px; }
   .welcome-row { align-items: stretch; flex-direction: column; gap: 20px; }
   .welcome-row .button { width: 100%; }
@@ -191,6 +233,11 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .card { padding: 19px; border-radius: 17px; }
   .chart-heading { align-items: flex-start; flex-direction: column; }
   .form-grid, .form-grid.three, .settings-card .form-grid.three { grid-template-columns: 1fr; }
+  .short-field { width: 100%; }
+  .bmi-summary-grid { grid-template-columns: 1fr; }
+  .incomplete-card { align-items: stretch; flex-direction: column; }
+  .incomplete-card .button { width: 100%; }
+  .bmi-segments b { display: none; }
   .modal { padding: 20px; }
 }
 

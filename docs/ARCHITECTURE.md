@@ -14,16 +14,22 @@ Versioned AppState
 Browser localStorage
 ```
 
-`AppState.schemaVersion` is the migration boundary. Future schema changes should load old data through explicit migrations rather than silently discarding or rewriting records.
+`AppState.schemaVersion` is the migration boundary. Version-one browser data is migrated to version two without discarding profiles or measurements; migrated profiles are invited to complete their missing baseline demographics. Future schema changes should follow the same explicit migration approach.
 
 ## Data invariants
 
 - A maximum of 10 profiles is allowed.
 - Each profile may have at most one measurement per local calendar date.
+- New profiles require height, age, gender, current weight, and a target weight; body fat is optional.
+- A new profile's current weight is stored as its immutable baseline measurement.
 - Measurement records are append-only in the user interface.
 - Weight is stored in kilograms; pounds are a presentation conversion.
 - Entries are sorted by their measurement date, not their save timestamp.
 - Goals and display preferences are mutable profile settings, not measurements.
+
+## BMI guidance
+
+BMI is calculated as kilograms divided by height in meters squared. Profiles age 20 and older receive the standard adult category chart and a general weight range corresponding to BMI 18.5–24.9. Profiles age 2–19 do not receive adult target ranges because pediatric interpretation requires age- and sex-specific percentiles. The interface consistently describes BMI as a screening measure rather than a diagnosis.
 
 ## Persistence limitations
 

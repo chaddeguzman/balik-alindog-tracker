@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { addMeasurement, addProfile, createMeasurement, createProfile, initialState } from './storage'
+import {
+  addMeasurement,
+  addProfile,
+  createMeasurement,
+  createProfile,
+  initialState,
+  loadState,
+  saveState,
+} from './storage'
 
 describe('tracker data rules', () => {
   it('creates and activates a profile', () => {
@@ -22,5 +30,15 @@ describe('tracker data rules', () => {
     state = addMeasurement(state, profile.id, createMeasurement({ date: '2026-07-12', weightKg: 79, bodyFatPercent: 24 }))
     state = addMeasurement(state, profile.id, createMeasurement({ date: '2026-07-10', weightKg: 80, bodyFatPercent: 25 }))
     expect(state.profiles[0].entries.map((entry) => entry.date)).toEqual(['2026-07-10', '2026-07-12'])
+  })
+
+  it('restores saved profiles and measurements after a reload', () => {
+    const profile = createProfile({ name: 'Mika', preferredUnit: 'kg', goalWeightKg: 65 })
+    let state = addProfile(initialState, profile)
+    state = addMeasurement(state, profile.id, createMeasurement({ date: '2026-07-12', weightKg: 72.5, bodyFatPercent: 28 }))
+
+    saveState(state)
+
+    expect(loadState()).toEqual(state)
   })
 })

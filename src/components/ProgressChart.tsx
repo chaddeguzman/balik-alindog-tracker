@@ -4,7 +4,7 @@ import { fromKilograms } from '../lib/units'
 import type { Measurement, Profile, Unit } from '../types'
 
 type Metric = 'weight' | 'bodyFat'
-type Range = 7 | 30 | 90 | 'all'
+type Range = 7 | 30 | 90 | 180
 type ChartMode = 'actual' | 'sample'
 
 interface Props {
@@ -18,14 +18,19 @@ const MIN_HEALTHY_LOSS_KG_PER_WEEK = 0.45
 const MAX_HEALTHY_LOSS_KG_PER_WEEK = 0.9
 const MID_HEALTHY_LOSS_KG_PER_WEEK = (MIN_HEALTHY_LOSS_KG_PER_WEEK + MAX_HEALTHY_LOSS_KG_PER_WEEK) / 2
 const MIN_FORECAST_WEEKS = 8
-const MAX_FORECAST_WEEKS = 13
+const MAX_FORECAST_WEEKS = 26
+const DAY_MS = 24 * 60 * 60 * 1000
 
 function selectEntries(entries: Measurement[], range: Range): Measurement[] {
-  if (range === 'all' || entries.length === 0) return entries
+  if (entries.length === 0) return entries
   const last = new Date(`${entries[entries.length - 1].date}T00:00:00`)
   const cutoff = new Date(last)
   cutoff.setDate(cutoff.getDate() - range + 1)
   return entries.filter((entry) => new Date(`${entry.date}T00:00:00`) >= cutoff)
+}
+
+function dateTime(date: string): number {
+  return new Date(`${date}T00:00:00`).getTime()
 }
 
 function addDays(date: string, days: number): string {
@@ -35,6 +40,24 @@ function addDays(date: string, days: number): string {
   const mm = String(next.getMonth() + 1).padStart(2, '0')
   const dd = String(next.getDate()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}`
+}
+
+function rangeLabel(range: Range): string {
+  if (range === 90) return '3m'
+  if (range === 180) return '6m'
+  return `${range}d`
+}
+
+function formatAxisDate(value: string): string {
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${value}T00:00:00`))
+}
+
+function buildDateTicks(endDate: string, range: Range): string[] {
+  const startDate = addDays(endDate, -range + 1)
+  if (range === 7) return Array.from({ length: 7 }, (_, index) => addDays(startDate, index))
+  if (range === 30) return [0, 7, 14, 21, 29].map((offset) => addDays(startDate, offset))
+  if (range === 90) return [0, 30, 60, 89].map((offset) => addDays(startDate, offset))
+  return [0, 30, 60, 90, 120, 150, 179].map((offset) => addDays(startDate, offset))
 }
 
 function buildForecastEntries(profile: Profile): { entries: Measurement[]; weeklyLossKg: number; reachesGoal: boolean } | null {
@@ -95,11 +118,23 @@ export function ProgressChart({ profile }: Props) {
   const max = rawMax + spread * 0.18
   const plotW = WIDTH - PAD.left - PAD.right
   const plotH = HEIGHT - PAD.top - PAD.bottom
-  const x = (index: number) => PAD.left + (entries.length <= 1 ? plotW / 2 : (index / (entries.length - 1)) * plotW)
+  const endDate = chartMode === 'sample'
+    ? entries.at(-1)?.date
+    : profile.entries.at(-1)?.date
+  const startDate = chartMode === 'sample'
+    ? entries[0]?.date
+    : endDate ? addDays(endDate, -range + 1) : entries[0]?.date
+  const startTime = startDate ? dateTime(startDate) : 0
+  const endTime = endDate ? dateTime(endDate) : startTime
+  const x = (date: string, fallbackIndex: number) => {
+    if (endTime <= startTime) return PAD.left + (entries.length <= 1 ? plotW / 2 : (fallbackIndex / (entries.length - 1)) * plotW)
+    return PAD.left + ((dateTime(date) - startTime) / (endTime - startTime)) * plotW
+  }
   const y = (value: number) => PAD.top + ((max - value) / (max - min || 1)) * plotH
-  const points = values.map((value, index) => `${x(index)},${y(value)}`).join(' ')
+  const points = values.map((value, index) => `${x(entries[index].date, index)},${y(value)}`).join(' ')
   const suffix = metric === 'weight' ? unit : '%'
   const forecastWeeklyLoss = forecast ? fromKilograms(forecast.weeklyLossKg, unit).toFixed(1) : null
+  const xTicks = chartMode === 'actual' && endDate ? buildDateTicks(endDate, range) : entries.filter((_, index) => index % 4 === 0 || index === entries.length - 1).map((entry) => entry.date)
 
   return (
     <section className="card chart-card" aria-labelledby={titleId}>
@@ -124,7 +159,7 @@ export function ProgressChart({ profile }: Props) {
             {chartMode === 'sample' && forecast && forecastWeeklyLoss
               ? forecast.reachesGoal
                 ? `Sample forecast: ${forecastWeeklyLoss} ${unit}/week toward goal over ${forecast.entries.length - 1} weeks.`
-                : `Sample forecast: ${forecastWeeklyLoss} ${unit}/week for 13 weeks; goal likely needs more time.`
+                : `Sample forecast: ${forecastWeeklyLoss} ${unit}/week for 6 months; goal likely needs more time.`
               : `Sample uses a safer ${MIN_HEALTHY_LOSS_KG_PER_WEEK} to ${MAX_HEALTHY_LOSS_KG_PER_WEEK} kg/week pace, roughly 1.6 to 3.6 kg/month.`}
           </p>
         </div>
@@ -132,9 +167,9 @@ export function ProgressChart({ profile }: Props) {
 
       {chartMode === 'actual' && (
         <div className="range-row" aria-label="Graph date range">
-          {([7, 30, 90, 'all'] as Range[]).map((item) => (
+          {([7, 30, 90, 180] as Range[]).map((item) => (
             <button key={item} className={range === item ? 'active' : ''} onClick={() => setRange(item)}>
-              {item === 'all' ? 'All' : `${item}d`}
+              {rangeLabel(item)}
             </button>
           ))}
         </div>
@@ -158,6 +193,12 @@ export function ProgressChart({ profile }: Props) {
                 </g>
               )
             })}
+            {xTicks.map((tick) => (
+              <g key={tick}>
+                <line x1={x(tick, 0)} x2={x(tick, 0)} y1={PAD.top} y2={HEIGHT - PAD.bottom} className="grid-line x-grid-line" />
+                <text x={x(tick, 0)} y={HEIGHT - 15} textAnchor="middle" className="axis-label">{formatAxisDate(tick)}</text>
+              </g>
+            ))}
             {goal != null && goal >= min && goal <= max && (
               <g>
                 <line x1={PAD.left} x2={WIDTH - PAD.right} y1={y(goal)} y2={y(goal)} className="goal-line" />
@@ -166,12 +207,10 @@ export function ProgressChart({ profile }: Props) {
             )}
             {entries.length > 1 && <polyline points={points} className={chartMode === 'sample' ? 'trend-line forecast-line' : 'trend-line'} />}
             {entries.map((entry, index) => (
-              <circle key={entry.id} cx={x(index)} cy={y(values[index])} r="5" className={chartMode === 'sample' ? 'data-point forecast-point' : 'data-point'} tabIndex={0} aria-label={`${chartMode === 'sample' ? 'Sample ' : ''}${formatDate(entry.date)}: ${values[index].toFixed(1)} ${suffix}`}>
+              <circle key={entry.id} cx={x(entry.date, index)} cy={y(values[index])} r="5" className={chartMode === 'sample' ? 'data-point forecast-point' : 'data-point'} tabIndex={0} aria-label={`${chartMode === 'sample' ? 'Sample ' : ''}${formatDate(entry.date)}: ${values[index].toFixed(1)} ${suffix}`}>
                 <title>{formatDate(entry.date)}: {values[index].toFixed(1)} {suffix}</title>
               </circle>
             ))}
-            <text x={PAD.left} y={HEIGHT - 15} className="axis-label">{formatDate(entries[0].date)}</text>
-            {entries.length > 1 && <text x={WIDTH - PAD.right} y={HEIGHT - 15} textAnchor="end" className="axis-label">{formatDate(entries[entries.length - 1].date)}</text>}
           </svg>
         </div>
       )}

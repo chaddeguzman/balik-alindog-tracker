@@ -119,4 +119,23 @@ describe('Balik Alindog Tracker', () => {
     expect(screen.getByText(/sample forecast/i)).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /sample forecast progress graph/i })).toBeInTheDocument()
   })
+
+  it('uses month-based actual chart ranges', () => {
+    const existing = createProfile({
+      name: 'Ria',
+      preferredUnit: 'kg',
+      heightCm: 165,
+      birthDate: '1992-05-10',
+      gender: 'female',
+      currentWeightKg: 80,
+      goalWeightKg: 68,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+
+    expect(screen.getByRole('button', { name: /3m/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /6m/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /all/i })).not.toBeInTheDocument()
+  })
 })

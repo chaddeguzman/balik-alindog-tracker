@@ -80,6 +80,7 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .main-content { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0 32px; }
 .welcome-row { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 30px; }
 .welcome-row p:last-child { color: var(--muted); margin: 0; }
+.welcome-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 .eyebrow { color: var(--primary); font-size: 0.73rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 8px; }
 .button { min-height: 44px; border-radius: 12px; padding: 0 18px; border: 1px solid transparent; font-weight: 700; transition: transform 140ms ease, background 140ms ease; }
 .button:hover:not(:disabled) { transform: translateY(-1px); }
@@ -229,6 +230,7 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .main-content { width: min(100% - 28px, 1180px); padding-top: 38px; }
   .welcome-row { align-items: stretch; flex-direction: column; gap: 20px; }
   .welcome-row .button { width: 100%; }
+  .welcome-actions { width: 100%; flex-direction: column; align-items: stretch; }
   .metric-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .metric-card { min-height: 128px; padding: 17px; }
   .metric-card strong { font-size: 1.5rem; }

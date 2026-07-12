@@ -239,6 +239,32 @@ export function completeProfileBaseline(
   }
 }
 
+export function updateProfileDetails(
+  state: AppState,
+  profileId: string,
+  input: { name: string; heightCm: number; birthDate: string; gender: Gender },
+): AppState {
+  if (!input.name.trim()) throw new Error('A profile name is required.')
+  assertHeight(input.heightCm)
+  assertBirthDate(input.birthDate)
+
+  return {
+    ...state,
+    profiles: state.profiles.map((profile) =>
+      profile.id === profileId
+        ? {
+            ...profile,
+            name: input.name.trim(),
+            heightCm: input.heightCm,
+            birthDate: input.birthDate,
+            age: undefined,
+            gender: input.gender,
+          }
+        : profile,
+    ),
+  }
+}
+
 export function addMeasurement(state: AppState, profileId: string, entry: Measurement): AppState {
   return {
     ...state,

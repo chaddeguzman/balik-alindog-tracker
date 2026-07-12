@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import App from './App'
 import { addProfile, createProfile, initialState, saveState } from './lib/storage'
+import { todayLocal } from './lib/date'
 
 describe('Balik Alindog Tracker', () => {
   it('guides a new user through profile setup', () => {
@@ -43,5 +44,57 @@ describe('Balik Alindog Tracker', () => {
     expect(screen.getByRole('heading', { name: /good day, jamie/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /add person/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/active household member/i)).toHaveValue(existing.id)
+  })
+
+  it('edits profile details from the dashboard', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Jamie',
+      preferredUnit: 'kg',
+      heightCm: 168,
+      birthDate: '1984-03-20',
+      gender: 'prefer-not-to-say',
+      currentWeightKg: 76,
+      goalWeightKg: 68,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: /edit profile/i }))
+    const dialog = screen.getByRole('dialog', { name: /edit profile/i })
+    const nameInput = within(dialog).getByLabelText(/profile name/i)
+    await user.clear(nameInput)
+    await user.type(nameInput, 'Jamie D')
+    await user.click(within(dialog).getByRole('button', { name: /save profile/i }))
+
+    expect(await screen.findByRole('heading', { name: /good day, jamie d/i })).toBeInTheDocument()
+  })
+
+  it('enables add entry on a fresh date and disables it after saving today', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Kai',
+      preferredUnit: 'kg',
+      heightCm: 170,
+      birthDate: '1990-01-15',
+      gender: 'prefer-not-to-say',
+      currentWeightKg: 80,
+      goalWeightKg: 70,
+    })
+    existing.entries[0] = { ...existing.entries[0], date: '2000-01-01' }
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    const addEntry = screen.getByRole('button', { name: /add entry/i })
+    expect(addEntry).toBeEnabled()
+
+    await user.click(addEntry)
+    const dialog = screen.getByRole('dialog', { name: /add measurement/i })
+    expect(within(dialog).getByLabelText(/measurement date/i)).toHaveValue(todayLocal())
+    await user.type(within(dialog).getByLabelText(/weight \(kg\)/i), '79')
+    await user.click(within(dialog).getByRole('button', { name: /review entry/i }))
+    await user.click(within(dialog).getByRole('button', { name: /save permanently/i }))
+
+    expect(await screen.findByRole('button', { name: /today is recorded/i })).toBeDisabled()
   })
 })

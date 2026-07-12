@@ -16,10 +16,11 @@ import {
   restoreStateFromBackup,
   saveState,
   setTheme,
+  updateProfileDetails,
   updateProfileSettings,
 } from './lib/storage'
-import { formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
-import type { AppState, Profile, Theme, Unit } from './types'
+import { centimetersFromFeet, formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
+import type { AppState, Gender, Profile, Theme, Unit } from './types'
 
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
@@ -37,7 +38,7 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 
 function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (date: string, weightKg: number, bodyFat?: number) => void; onCancel: () => void }) {
   const unit = profile.preferredUnit
-  const [date, setDate] = useState(todayLocal())
+  const date = todayLocal()
   const [weight, setWeight] = useState('')
   const [bodyFat, setBodyFat] = useState('')
   const [confirming, setConfirming] = useState(false)
@@ -74,7 +75,8 @@ function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (d
       <p className="helper-text">For consistent results, record in the morning before eating or drinking.</p>
       <label>
         Measurement date
-        <input type="date" required max={todayLocal()} value={date} onChange={(event) => setDate(event.target.value)} />
+        <input type="date" readOnly value={date} />
+        <small className="field-note">Captured from this device's system date.</small>
       </label>
       <div className="form-grid">
         <label>
@@ -89,6 +91,67 @@ function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (d
       <div className="form-actions">
         <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
         <button className="button primary" type="submit">Review entry</button>
+      </div>
+    </form>
+  )
+}
+
+function EditProfileForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (input: { name: string; heightCm: number; birthDate: string; gender: Gender }) => void; onCancel: () => void }) {
+  const totalInches = profile.heightCm ? profile.heightCm / 2.54 : 0
+  const [name, setName] = useState(profile.name)
+  const [birthDate, setBirthDate] = useState(profile.birthDate ?? '')
+  const [gender, setGender] = useState<Gender>(profile.gender ?? 'prefer-not-to-say')
+  const [heightCm, setHeightCm] = useState(profile.heightCm?.toFixed(1) ?? '')
+  const [heightFeet, setHeightFeet] = useState(profile.heightCm ? String(Math.floor(totalInches / 12)) : '')
+  const [heightInches, setHeightInches] = useState(profile.heightCm ? (totalInches % 12).toFixed(1) : '')
+
+  function submit(event: FormEvent) {
+    event.preventDefault()
+    onSave({
+      name,
+      heightCm: profile.preferredUnit === 'kg' ? Number(heightCm) : centimetersFromFeet(Number(heightFeet), Number(heightInches || 0)),
+      birthDate,
+      gender,
+    })
+  }
+
+  return (
+    <form onSubmit={submit} className="form-stack">
+      <p className="helper-text">This updates profile details only. Saved measurements remain unchanged.</p>
+      <label>
+        Profile name
+        <input autoFocus required maxLength={40} value={name} onChange={(event) => setName(event.target.value)} />
+      </label>
+      <div className="form-grid">
+        <label>
+          Birthday
+          <input type="date" required max={todayLocal()} value={birthDate} onChange={(event) => setBirthDate(event.target.value)} />
+          <small className="field-note">Kept in this browser to calculate age automatically.</small>
+        </label>
+        <label>
+          Gender
+          <select required value={gender} onChange={(event) => setGender(event.target.value as Gender)}>
+            <option value="prefer-not-to-say">Prefer not to say</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="nonbinary">Non-binary</option>
+          </select>
+        </label>
+      </div>
+      {profile.preferredUnit === 'kg' ? (
+        <label>
+          Current height (cm)
+          <input type="number" required min="80" max="250" step="0.1" value={heightCm} onChange={(event) => setHeightCm(event.target.value)} />
+        </label>
+      ) : (
+        <div className="height-fields">
+          <label>Height (ft)<input type="number" required min="2" max="8" step="1" value={heightFeet} onChange={(event) => setHeightFeet(event.target.value)} /></label>
+          <label>Inches<input type="number" required min="0" max="11.9" step="0.1" value={heightInches} onChange={(event) => setHeightInches(event.target.value)} /></label>
+        </div>
+      )}
+      <div className="form-actions">
+        <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
+        <button className="button primary" type="submit">Save profile</button>
       </div>
     </form>
   )
@@ -141,6 +204,7 @@ function SettingsForm({ profile, onSave }: { profile: Profile; onSave: (input: {
 function Dashboard({ profile, state, setState, notify }: { profile: Profile; state: AppState; setState: (state: AppState) => void; notify: (message: string) => void }) {
   const [entryOpen, setEntryOpen] = useState(false)
   const [baselineOpen, setBaselineOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const entries = profile.entries
   const latest = entries.at(-1)
   const latestBodyFat = [...entries].reverse().find((entry) => entry.bodyFatPercent !== undefined)
@@ -172,9 +236,12 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
           <h1>Good day, {profile.name}</h1>
           <p>{latest ? `Last check-in ${formatDate(latest.date)}` : 'Start with your first morning measurement.'}</p>
         </div>
-        <button className="button primary" disabled={hasToday} onClick={() => setEntryOpen(true)}>
-          {hasToday ? 'Today is recorded' : '+ Add today’s measurement'}
-        </button>
+        <div className="welcome-actions">
+          <button className="button secondary" onClick={() => setEditOpen(true)}>Edit Profile</button>
+          <button className="button primary" disabled={hasToday} onClick={() => setEntryOpen(true)}>
+            {hasToday ? 'Today is recorded' : 'Add Entry'}
+          </button>
+        </div>
       </section>
 
       {!hasToday && <div className="notice"><span aria-hidden="true">☀</span><span><strong>Morning check-in</strong> Weigh yourself after waking and before breakfast for a consistent trend.</span></div>}
@@ -233,6 +300,15 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
       </div>
 
       {entryOpen && <Modal title="Add measurement" onClose={() => setEntryOpen(false)}><EntryForm profile={profile} onSave={saveEntry} onCancel={() => setEntryOpen(false)} /></Modal>}
+      {editOpen && <Modal title="Edit Profile" onClose={() => setEditOpen(false)}><EditProfileForm profile={profile} onCancel={() => setEditOpen(false)} onSave={(input) => {
+        try {
+          setState(updateProfileDetails(state, profile.id, input))
+          setEditOpen(false)
+          notify('Profile updated.')
+        } catch (error) {
+          notify(error instanceof Error ? error.message : 'Could not update the profile.')
+        }
+      }} /></Modal>}
       {baselineOpen && <Modal title="Complete profile baseline" onClose={() => setBaselineOpen(false)}><BaselineForm profile={profile} onCancel={() => setBaselineOpen(false)} onSubmit={(input) => {
         try {
           setState(completeProfileBaseline(state, profile.id, input))

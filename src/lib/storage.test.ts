@@ -8,6 +8,7 @@ import {
   initialState,
   loadState,
   saveState,
+  updateProfileDetails,
 } from './storage'
 
 function profileInput(name = 'Alex') {
@@ -53,6 +54,22 @@ describe('tracker data rules', () => {
     saveState(state)
 
     expect(loadState()).toEqual(state)
+  })
+
+  it('updates profile details without changing measurement history', () => {
+    const profile = createProfile(profileInput('Mika'))
+    const state = addProfile(initialState, profile)
+    const updated = updateProfileDetails(state, profile.id, {
+      name: '  Mika D  ',
+      heightCm: 166,
+      birthDate: '1991-02-20',
+      gender: 'female',
+    })
+
+    expect(updated.profiles[0].name).toBe('Mika D')
+    expect(updated.profiles[0].heightCm).toBe(166)
+    expect(updated.profiles[0].birthDate).toBe('1991-02-20')
+    expect(updated.profiles[0].entries).toEqual(profile.entries)
   })
 
   it('migrates an existing version-one profile without losing measurements', () => {

@@ -98,4 +98,25 @@ describe('Balik Alindog Tracker', () => {
 
     expect(await screen.findByRole('button', { name: /today is recorded/i })).toBeDisabled()
   })
+
+  it('shows a sample forecast in the progress chart', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Ria',
+      preferredUnit: 'kg',
+      heightCm: 165,
+      birthDate: '1992-05-10',
+      gender: 'female',
+      currentWeightKg: 80,
+      goalWeightKg: 68,
+    })
+    existing.entries[0] = { ...existing.entries[0], date: '2026-01-01' }
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: /sample/i }))
+
+    expect(screen.getByText(/sample forecast/i)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /sample forecast progress graph/i })).toBeInTheDocument()
+  })
 })

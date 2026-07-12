@@ -124,6 +124,8 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .segmented button.active, .range-row button.active { background: var(--surface); color: var(--primary); box-shadow: 0 2px 8px rgba(30,70,50,.08); }
 .range-row { display: flex; justify-content: flex-end; gap: 4px; margin: -10px 0 8px; }
 .range-row button { padding: 6px 9px; }
+.chart-mode-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -10px 0 12px; }
+.chart-mode-row p { margin: 0; color: var(--muted); font-size: 0.78rem; text-align: right; }
 .chart-scroll { overflow-x: auto; }
 .progress-chart { display: block; width: 100%; min-width: 560px; height: auto; }
 .grid-line { stroke: var(--border); stroke-width: 1; }
@@ -131,7 +133,9 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .goal-line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 5; }
 .goal-label { fill: var(--accent); font-size: 11px; font-weight: 700; }
 .trend-line { fill: none; stroke: var(--primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.forecast-line { stroke: var(--accent); stroke-dasharray: 8 7; }
 .data-point { fill: var(--surface); stroke: var(--primary); stroke-width: 3; }
+.forecast-point { stroke: var(--accent); }
 .data-point:hover, .data-point:focus { fill: var(--primary); }
 .empty-chart { height: 220px; display: grid; place-content: center; justify-items: center; color: var(--muted); text-align: center; }
 .empty-chart span { width: 58px; height: 58px; display: grid; place-items: center; margin-bottom: 12px; border-radius: 50%; background: var(--surface-soft); color: var(--primary); font-size: 1.7rem; }
@@ -254,6 +258,8 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .metric-card strong { font-size: 1.5rem; }
   .card { padding: 19px; border-radius: 17px; }
   .chart-heading { align-items: flex-start; flex-direction: column; }
+  .chart-mode-row { align-items: stretch; flex-direction: column; }
+  .chart-mode-row p { text-align: left; }
   .form-grid, .form-grid.three, .settings-card .form-grid.three { grid-template-columns: 1fr; }
   .short-field { width: 100%; }
   .bmi-summary-grid { grid-template-columns: 1fr; }

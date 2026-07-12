@@ -19,8 +19,6 @@ const MAX_HEALTHY_LOSS_KG_PER_WEEK = 0.9
 const MID_HEALTHY_LOSS_KG_PER_WEEK = (MIN_HEALTHY_LOSS_KG_PER_WEEK + MAX_HEALTHY_LOSS_KG_PER_WEEK) / 2
 const MIN_FORECAST_WEEKS = 8
 const MAX_FORECAST_WEEKS = 26
-const DAY_MS = 24 * 60 * 60 * 1000
-
 function selectEntries(entries: Measurement[], range: Range): Measurement[] {
   if (entries.length === 0) return entries
   const last = new Date(`${entries[entries.length - 1].date}T00:00:00`)

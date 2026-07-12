@@ -93,8 +93,11 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .notice > span:first-child { font-size: 1.25rem; }
 .notice strong { margin-right: 6px; }
 .notice.warning { align-items: flex-start; flex-direction: column; gap: 3px; background: var(--danger-soft); border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+.backup-reminder { justify-content: space-between; }
+.backup-reminder > span:nth-child(2) { flex: 1; }
 
 .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 18px; }
+.trend-grid { grid-template-columns: 1fr 1fr; }
 .metric-card, .card { background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
 .metric-card { min-height: 145px; padding: 22px; border-radius: 18px; display: flex; flex-direction: column; }
 .metric-card.featured { background: var(--primary); color: #fff; border-color: transparent; }
@@ -106,6 +109,12 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .progress-track span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
 
 .card { border-radius: 20px; padding: 25px; }
+.profile-summary-card { margin-bottom: 18px; }
+.profile-summary-card .section-heading { margin-bottom: 16px; }
+.profile-summary-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 0; }
+.profile-summary-grid div { min-width: 0; padding: 13px; border-radius: 13px; background: var(--surface-soft); }
+.profile-summary-grid dt { color: var(--muted); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.profile-summary-grid dd { margin: 5px 0 0; font-weight: 800; overflow-wrap: anywhere; }
 .chart-card { margin-bottom: 18px; }
 .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 22px; }
 .section-heading .eyebrow { margin-bottom: 5px; }
@@ -190,6 +199,8 @@ input::placeholder { color: var(--muted); }
 .bmi-summary-grid span { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
 .bmi-summary-grid strong { font-size: 1rem; }
 .bmi-summary-grid small { color: var(--muted); }
+.bmi-target-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.bmi-target-actions button { min-height: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--primary); font-size: 0.72rem; font-weight: 800; }
 .bmi-disclaimer { margin: 16px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
 .incomplete-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; background: linear-gradient(135deg, var(--surface), var(--primary-soft)); }
 .incomplete-card p:last-child { max-width: 650px; margin: 7px 0 0; color: var(--muted); }
@@ -212,6 +223,8 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
 
 @media (max-width: 900px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .trend-grid { grid-template-columns: 1fr 1fr; }
+  .profile-summary-grid { grid-template-columns: repeat(3, 1fr); }
   .content-grid { grid-template-columns: 1fr; }
   .settings-card .form-grid.three { grid-template-columns: repeat(3, 1fr); }
   .export-all { display: none; }
@@ -232,6 +245,7 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .welcome-row .button { width: 100%; }
   .welcome-actions { width: 100%; flex-direction: column; align-items: stretch; }
   .metric-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .trend-grid { grid-template-columns: 1fr; }
   .metric-card { min-height: 128px; padding: 17px; }
   .metric-card strong { font-size: 1.5rem; }
   .card { padding: 19px; border-radius: 17px; }
@@ -239,6 +253,9 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .form-grid, .form-grid.three, .settings-card .form-grid.three { grid-template-columns: 1fr; }
   .short-field { width: 100%; }
   .bmi-summary-grid { grid-template-columns: 1fr; }
+  .profile-summary-grid { grid-template-columns: 1fr 1fr; }
+  .backup-reminder { align-items: stretch; flex-direction: column; }
+  .backup-reminder .button { width: 100%; }
   .incomplete-card { align-items: stretch; flex-direction: column; }
   .incomplete-card .button { width: 100%; }
   .bmi-segments b { display: none; }
@@ -247,6 +264,7 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
 
 @media (max-width: 430px) {
   .metric-grid { grid-template-columns: 1fr; }
+  .profile-summary-grid { grid-template-columns: 1fr; }
   .section-heading { align-items: flex-start; }
   .history-card .section-heading { flex-direction: column; }
   .history-card .section-heading .button { width: 100%; }

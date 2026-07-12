@@ -6,6 +6,7 @@ import type { Profile } from '../types'
 interface Props {
   profile: Profile
   onCompleteBaseline: () => void
+  onSelectTargetWeight: (weightKg: number) => void
 }
 
 function markerPosition(bmi: number): string {
@@ -16,7 +17,7 @@ function genderLabel(gender: NonNullable<Profile['gender']>): string {
   return { female: 'Female', male: 'Male' }[gender]
 }
 
-export function BmiGuide({ profile, onCompleteBaseline }: Props) {
+export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: Props) {
   const latest = profile.entries.at(-1)
   if (!profile.heightCm || !profile.birthDate || !profile.gender || !latest) {
     return (
@@ -78,7 +79,15 @@ export function BmiGuide({ profile, onCompleteBaseline }: Props) {
       </div>
 
       <div className="bmi-summary-grid">
-        <div><span>General healthy-weight range</span><strong>{formatWeight(range.minKg, profile.preferredUnit)} – {formatWeight(range.maxKg, profile.preferredUnit)}</strong></div>
+        <div>
+          <span>General healthy-weight range</span>
+          <strong>{formatWeight(range.minKg, profile.preferredUnit)} – {formatWeight(range.maxKg, profile.preferredUnit)}</strong>
+          <div className="bmi-target-actions" aria-label="Set target weight from healthy BMI range">
+            <button type="button" onClick={() => onSelectTargetWeight(range.minKg)}>Use low</button>
+            <button type="button" onClick={() => onSelectTargetWeight((range.minKg + range.maxKg) / 2)}>Use middle</button>
+            <button type="button" onClick={() => onSelectTargetWeight(range.maxKg)}>Use high</button>
+          </div>
+        </div>
         <div><span>Your selected target</span><strong>{formatWeight(profile.goalWeightKg, profile.preferredUnit)}</strong><small>BMI {targetBmi.toFixed(1)} · {adultBmiCategory(targetBmi)}</small></div>
       </div>
       <p className="bmi-disclaimer">Adult BMI is a screening measure, not a diagnosis or personalized medical target. Consider health history, body composition, and professional advice when choosing a goal.</p>

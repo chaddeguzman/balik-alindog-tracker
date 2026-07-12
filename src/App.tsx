@@ -3,7 +3,7 @@ import { ProfileForm } from './components/ProfileForm'
 import { ProgressChart } from './components/ProgressChart'
 import { BaselineForm } from './components/BaselineForm'
 import { BmiGuide } from './components/BmiGuide'
-import { formatDate, todayLocal } from './lib/date'
+import { calculateAge, formatDate, todayLocal } from './lib/date'
 import { exportAllJson, exportProfileCsv } from './lib/export'
 import {
   MAX_PROFILES,
@@ -19,8 +19,16 @@ import {
   updateProfileDetails,
   updateProfileSettings,
 } from './lib/storage'
-import { centimetersFromFeet, formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
+import { estimateGoalDate, sevenDayAverage, weeklyAverageChange } from './lib/trends'
+import { centimetersFromFeet, formatHeight, formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
 import type { AppState, Gender, Profile, Theme, Unit } from './types'
+
+const LAST_BACKUP_KEY = 'balik-alindog-tracker:last-backup-at'
+const BACKUP_REMINDER_DAYS = 14
+
+function isBackupDue(lastBackupAt: string | null): boolean {
+  return !lastBackupAt || Date.now() - new Date(lastBackupAt).getTime() > BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000
+}
 
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
@@ -200,7 +208,39 @@ function SettingsForm({ profile, onSave }: { profile: Profile; onSave: (input: {
   )
 }
 
-function Dashboard({ profile, state, setState, notify }: { profile: Profile; state: AppState; setState: (state: AppState) => void; notify: (message: string) => void }) {
+function genderLabel(gender?: Gender): string {
+  return gender === 'female' ? 'Female' : gender === 'male' ? 'Male' : 'Missing'
+}
+
+function weeklyChangeLabel(changeKg: number | null, unit: Unit): string {
+  if (changeKg === null) return 'Needs more history'
+  if (Math.abs(changeKg) < 0.05) return `flat this week`
+  const direction = changeKg < 0 ? 'down' : 'up'
+  return `${direction} ${Math.abs(fromKilograms(changeKg, unit)).toFixed(1)} ${unit} this week`
+}
+
+function ProfileSummaryCard({ profile }: { profile: Profile }) {
+  const latest = profile.entries.at(-1)
+  const baseline = profile.entries.find((entry) => entry.id === profile.baselineEntryId) ?? profile.entries[0]
+
+  return (
+    <section className="card profile-summary-card" aria-label="Profile summary">
+      <div className="section-heading">
+        <div><p className="eyebrow">Profile</p><h2>{profile.name}</h2></div>
+      </div>
+      <dl className="profile-summary-grid">
+        <div><dt>Height</dt><dd>{profile.heightCm ? formatHeight(profile.heightCm, profile.preferredUnit) : 'Missing'}</dd></div>
+        <div><dt>Age</dt><dd>{profile.birthDate ? calculateAge(profile.birthDate) : 'Missing'}</dd></div>
+        <div><dt>Gender</dt><dd>{genderLabel(profile.gender)}</dd></div>
+        <div><dt>Starting</dt><dd>{baseline ? formatWeight(baseline.weightKg, profile.preferredUnit) : 'Missing'}</dd></div>
+        <div><dt>Current</dt><dd>{latest ? formatWeight(latest.weightKg, profile.preferredUnit) : 'Missing'}</dd></div>
+        <div><dt>Target</dt><dd>{formatWeight(profile.goalWeightKg, profile.preferredUnit)}</dd></div>
+      </dl>
+    </section>
+  )
+}
+
+function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { profile: Profile; state: AppState; setState: (state: AppState) => void; notify: (message: string) => void; backupDue: boolean; onBackup: () => void }) {
   const [entryOpen, setEntryOpen] = useState(false)
   const [baselineOpen, setBaselineOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -211,6 +251,9 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
   const hasToday = entries.some((entry) => entry.date === todayLocal())
   const change = latest && first ? latest.weightKg - first.weightKg : 0
   const remaining = latest ? latest.weightKg - profile.goalWeightKg : null
+  const average7 = sevenDayAverage(entries)
+  const weeklyChange = weeklyAverageChange(entries)
+  const goalDate = estimateGoalDate(entries, profile.goalWeightKg)
   const progress = latest && first && first.weightKg !== profile.goalWeightKg
     ? Math.max(0, Math.min(100, ((first.weightKg - latest.weightKg) / (first.weightKg - profile.goalWeightKg)) * 100))
     : 0
@@ -244,6 +287,13 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
       </section>
 
       {!hasToday && <div className="notice"><span aria-hidden="true">☀</span><span><strong>Morning check-in</strong> Weigh yourself after waking and before breakfast for a consistent trend.</span></div>}
+      {backupDue && (
+        <div className="notice backup-reminder">
+          <span aria-hidden="true">↧</span>
+          <span><strong>Backup reminder</strong> Keep a recent household backup before browser data gets cleared or you switch devices.</span>
+          <button className="button compact secondary" type="button" onClick={onBackup}>Backup</button>
+        </div>
+      )}
 
       <section className="metric-grid" aria-label="Current progress summary">
         <article className="metric-card featured">
@@ -262,13 +312,35 @@ function Dashboard({ profile, state, setState, notify }: { profile: Profile; sta
           <small>{remaining == null ? 'Ready when you are' : `${Math.abs(fromKilograms(remaining, profile.preferredUnit)).toFixed(1)} ${profile.preferredUnit} ${remaining >= 0 ? 'to go' : 'past goal'}`}</small>
         </article>
         <article className="metric-card">
+          <span>7-day average</span>
+          <strong>{average7 !== null ? formatWeight(average7, profile.preferredUnit) : '—'}</strong>
+          <small>{weeklyChangeLabel(weeklyChange, profile.preferredUnit)}</small>
+        </article>
+      </section>
+
+      <section className="metric-grid trend-grid" aria-label="Trend and goal summary">
+        <article className="metric-card">
           <span>Goal progress</span>
           <strong>{Math.round(progress)}%</strong>
           <div className="progress-track" aria-label={`${Math.round(progress)} percent toward goal`}><span style={{ width: `${progress}%` }} /></div>
         </article>
+        <article className="metric-card goal-estimate-card">
+          <span>Goal estimate</span>
+          <strong>{goalDate ? formatDate(goalDate) : 'Not enough trend yet'}</strong>
+          <small>{goalDate ? 'At your current trend, this is an estimate only.' : 'Needs a consistent trend toward the target.'}</small>
+        </article>
       </section>
 
-      <BmiGuide profile={profile} onCompleteBaseline={() => setBaselineOpen(true)} />
+      <ProfileSummaryCard profile={profile} />
+
+      <BmiGuide profile={profile} onCompleteBaseline={() => setBaselineOpen(true)} onSelectTargetWeight={(goalWeightKg) => {
+        setState(updateProfileSettings(state, profile.id, {
+          preferredUnit: profile.preferredUnit,
+          goalWeightKg,
+          goalBodyFatPercent: profile.goalBodyFatPercent,
+        }))
+        notify('Target weight updated from the BMI guide.')
+      }} />
 
       <ProgressChart profile={profile} />
 
@@ -325,6 +397,7 @@ export default function App() {
   const [state, setState] = useState<AppState>(() => loadState())
   const [profileModal, setProfileModal] = useState(false)
   const [toast, setToast] = useState('')
+  const [backupDue, setBackupDue] = useState(() => isBackupDue(window.localStorage.getItem(LAST_BACKUP_KEY)))
   const uploadInput = useRef<HTMLInputElement>(null)
   const activeProfile = useMemo(
     () => state.profiles.find((profile) => profile.id === state.activeProfileId) ?? state.profiles[0],
@@ -341,7 +414,6 @@ export default function App() {
     const timeout = window.setTimeout(() => setToast(''), 3500)
     return () => window.clearTimeout(timeout)
   }, [toast])
-
   function handleNewProfile(input: Parameters<typeof createProfile>[0]) {
     try {
       setState(addProfile(state, createProfile(input)))
@@ -350,6 +422,14 @@ export default function App() {
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Could not create the profile.')
     }
+  }
+
+  function handleBackupDownload() {
+    exportAllJson(state)
+    const timestamp = new Date().toISOString()
+    window.localStorage.setItem(LAST_BACKUP_KEY, timestamp)
+    setBackupDue(false)
+    setToast('Backup downloaded.')
   }
 
   async function handleBackupUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -408,13 +488,20 @@ export default function App() {
               <option value="system">System theme</option><option value="light">Light theme</option><option value="dark">Dark theme</option>
             </select>
           </label>
-          <button className="button compact secondary export-all" onClick={() => exportAllJson(state)}>Backup</button>
+          <button className="button compact secondary export-all" onClick={handleBackupDownload}>Backup</button>
           <button className="button compact secondary upload-backup" onClick={() => uploadInput.current?.click()}>Upload</button>
           <input ref={uploadInput} className="sr-only" type="file" accept="application/json,.json" onChange={handleBackupUpload} tabIndex={-1} />
         </div>
       </header>
       <main id="top" className="main-content">
-        <Dashboard profile={activeProfile} state={state} setState={setState} notify={setToast} />
+        <Dashboard
+          profile={activeProfile}
+          state={state}
+          setState={setState}
+          notify={setToast}
+          backupDue={backupDue}
+          onBackup={handleBackupDownload}
+        />
         <footer><span>Stored privately in this browser · never uploaded to the repository</span><span>•</span><span>{state.profiles.length} of {MAX_PROFILES} profiles</span><span>•</span><span>AI suggestions coming in a future release</span></footer>
       </main>
       {profileModal && <Modal title="Add a household member" onClose={() => setProfileModal(false)}><ProfileForm onSubmit={handleNewProfile} onCancel={() => setProfileModal(false)} /></Modal>}

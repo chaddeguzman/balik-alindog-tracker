@@ -15,6 +15,8 @@ export interface Profile {
   name: string
   preferredUnit: Unit
   heightCm?: number
+  birthDate?: string
+  /** Preserved only until a migrated profile supplies an exact birthday. */
   age?: number
   gender?: Gender
   baselineEntryId?: string
@@ -25,7 +27,7 @@ export interface Profile {
 }
 
 export interface AppState {
-  schemaVersion: 2
+  schemaVersion: 3
   theme: Theme
   activeProfileId: string | null
   profiles: Profile[]

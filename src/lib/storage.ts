@@ -1,11 +1,11 @@
-import { todayLocal } from './date'
+import { calculateAge, todayLocal } from './date'
 import type { AppState, Gender, Measurement, Profile, Theme, Unit } from '../types'
 
 export const STORAGE_KEY = 'balik-alindog-tracker:v1'
 export const MAX_PROFILES = 10
 
 export const initialState: AppState = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   theme: 'system',
   activeProfileId: null,
   profiles: [],
@@ -16,6 +16,10 @@ interface LegacyAppState {
   theme: Theme
   activeProfileId: string | null
   profiles: Array<Omit<Profile, 'heightCm' | 'age' | 'gender' | 'baselineEntryId'>>
+}
+
+interface VersionTwoAppState extends Omit<AppState, 'schemaVersion'> {
+  schemaVersion: 2
 }
 
 function assertWeight(weightKg: number): void {
@@ -42,9 +46,22 @@ function assertAge(age: number): void {
   }
 }
 
+function assertBirthDate(birthDate: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) throw new Error('A valid birthday is required.')
+  const [year, month, day] = birthDate.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    throw new Error('A valid birthday is required.')
+  }
+  const age = calculateAge(birthDate)
+  if (birthDate > todayLocal() || age < 2 || age > 120) {
+    throw new Error('Birthday must represent an age between 2 and 120.')
+  }
+}
+
 function migrateLegacyState(state: LegacyAppState): AppState {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     theme: state.theme,
     activeProfileId: state.activeProfileId,
     profiles: state.profiles.map((profile) => ({
@@ -52,6 +69,48 @@ function migrateLegacyState(state: LegacyAppState): AppState {
       baselineEntryId: profile.entries[0]?.id,
     })),
   }
+}
+
+function migrateVersionTwoState(state: VersionTwoAppState): AppState {
+  return { ...state, schemaVersion: 3 }
+}
+
+function validateState(state: AppState): AppState {
+  if (!['light', 'dark', 'system'].includes(state.theme)) throw new Error('Backup has an invalid theme.')
+  if (!Array.isArray(state.profiles) || state.profiles.length > MAX_PROFILES) throw new Error('Backup has an invalid profile list.')
+  for (const profile of state.profiles) {
+    if (!profile || typeof profile.id !== 'string' || typeof profile.name !== 'string' || !profile.name.trim()) throw new Error('Backup contains an invalid profile.')
+    if (!['kg', 'lb'].includes(profile.preferredUnit)) throw new Error('Backup contains an invalid unit.')
+    assertWeight(profile.goalWeightKg)
+    assertBodyFat(profile.goalBodyFatPercent)
+    if (profile.heightCm !== undefined) assertHeight(profile.heightCm)
+    if (profile.birthDate !== undefined) assertBirthDate(profile.birthDate)
+    else if (profile.age !== undefined) assertAge(profile.age)
+    if (profile.gender !== undefined && !['female', 'male', 'nonbinary', 'prefer-not-to-say'].includes(profile.gender)) throw new Error('Backup contains an invalid gender.')
+    if (!Array.isArray(profile.entries)) throw new Error('Backup contains invalid measurements.')
+    const dates = new Set<string>()
+    for (const entry of profile.entries) {
+      if (!entry || typeof entry.id !== 'string' || typeof entry.recordedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)) throw new Error('Backup contains an invalid measurement.')
+      assertWeight(entry.weightKg)
+      assertBodyFat(entry.bodyFatPercent)
+      if (dates.has(entry.date)) throw new Error('Backup contains duplicate measurement dates.')
+      dates.add(entry.date)
+    }
+  }
+  if (state.activeProfileId !== null && !state.profiles.some((profile) => profile.id === state.activeProfileId)) {
+    state.activeProfileId = state.profiles[0]?.id ?? null
+  }
+  return state
+}
+
+function parseState(value: unknown): AppState {
+  if (!value || typeof value !== 'object') throw new Error('Backup is not valid tracker data.')
+  const candidate = value as AppState | VersionTwoAppState | LegacyAppState
+  if (!Array.isArray(candidate.profiles)) throw new Error('Backup is not valid tracker data.')
+  if (candidate.schemaVersion === 1) return validateState(migrateLegacyState(candidate))
+  if (candidate.schemaVersion === 2) return validateState(migrateVersionTwoState(candidate))
+  if (candidate.schemaVersion === 3) return validateState(candidate)
+  throw new Error('This backup version is not supported.')
 }
 
 function id(): string {
@@ -62,14 +121,21 @@ export function loadState(): AppState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return initialState
-    const state = JSON.parse(raw) as AppState | LegacyAppState
-    if (!Array.isArray(state.profiles)) return initialState
-    if (state.schemaVersion === 1) return migrateLegacyState(state)
-    if (state.schemaVersion !== 2) return initialState
-    return state
+    return parseState(JSON.parse(raw))
   } catch {
     return initialState
   }
+}
+
+export function restoreStateFromBackup(text: string): AppState {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    throw new Error('The selected file is not valid JSON.')
+  }
+  const payload = parsed && typeof parsed === 'object' && 'data' in parsed ? (parsed as { data: unknown }).data : parsed
+  return parseState(payload)
 }
 
 export function saveState(state: AppState): void {
@@ -80,7 +146,7 @@ export function createProfile(input: {
   name: string
   preferredUnit: Unit
   heightCm: number
-  age: number
+  birthDate: string
   gender: Gender
   currentWeightKg: number
   baselineBodyFatPercent?: number
@@ -89,7 +155,7 @@ export function createProfile(input: {
 }): Profile {
   if (!input.name.trim()) throw new Error('A profile name is required.')
   assertHeight(input.heightCm)
-  assertAge(input.age)
+  assertBirthDate(input.birthDate)
   assertWeight(input.currentWeightKg)
   assertBodyFat(input.baselineBodyFatPercent)
   assertWeight(input.goalWeightKg)
@@ -104,7 +170,7 @@ export function createProfile(input: {
     name: input.name.trim(),
     preferredUnit: input.preferredUnit,
     heightCm: input.heightCm,
-    age: input.age,
+    birthDate: input.birthDate,
     gender: input.gender,
     baselineEntryId: baseline.id,
     goalWeightKg: input.goalWeightKg,
@@ -144,10 +210,10 @@ export function createMeasurement(input: {
 export function completeProfileBaseline(
   state: AppState,
   profileId: string,
-  input: { heightCm: number; age: number; gender: Gender; currentWeightKg?: number; bodyFatPercent?: number },
+  input: { heightCm: number; birthDate: string; gender: Gender; currentWeightKg?: number; bodyFatPercent?: number },
 ): AppState {
   assertHeight(input.heightCm)
-  assertAge(input.age)
+  assertBirthDate(input.birthDate)
   assertBodyFat(input.bodyFatPercent)
   if (input.currentWeightKg !== undefined) assertWeight(input.currentWeightKg)
 
@@ -163,7 +229,8 @@ export function completeProfileBaseline(
       return {
         ...profile,
         heightCm: input.heightCm,
-        age: input.age,
+        birthDate: input.birthDate,
+        age: undefined,
         gender: input.gender,
         baselineEntryId: entries[0].id,
         entries,

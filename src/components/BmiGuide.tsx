@@ -1,4 +1,5 @@
 import { adultBmiCategory, adultHealthyWeightRange, calculateBmi } from '../lib/bmi'
+import { calculateAge } from '../lib/date'
 import { formatHeight, formatWeight } from '../lib/units'
 import type { Profile } from '../types'
 
@@ -17,13 +18,13 @@ function genderLabel(gender: NonNullable<Profile['gender']>): string {
 
 export function BmiGuide({ profile, onCompleteBaseline }: Props) {
   const latest = profile.entries.at(-1)
-  if (!profile.heightCm || !profile.age || !profile.gender || !latest) {
+  if (!profile.heightCm || !profile.birthDate || !profile.gender || !latest) {
     return (
       <section className="card bmi-card incomplete-card">
         <div>
           <p className="eyebrow">Baseline profile</p>
           <h2>Complete this person’s starting stats</h2>
-          <p>Add height, age, and gender to unlock BMI guidance while keeping the existing measurements intact.</p>
+          <p>Add height, birthday, and gender to unlock automatically updated age and BMI guidance while keeping existing measurements intact.</p>
         </div>
         <button className="button primary" onClick={onCompleteBaseline}>Complete baseline</button>
       </section>
@@ -31,18 +32,19 @@ export function BmiGuide({ profile, onCompleteBaseline }: Props) {
   }
 
   const bmi = calculateBmi(latest.weightKg, profile.heightCm)
-  const isAdult = profile.age >= 20
+  const age = calculateAge(profile.birthDate)
+  const isAdult = age >= 20
   const baseline = profile.entries.find((entry) => entry.id === profile.baselineEntryId) ?? profile.entries[0]
 
   if (!isAdult) {
     return (
       <section className="card bmi-card">
         <div className="section-heading">
-          <div><p className="eyebrow">BMI guide</p><h2>Growth-aware guidance</h2><p className="baseline-meta">Age {profile.age} · {genderLabel(profile.gender)} · Baseline {formatWeight(baseline.weightKg, profile.preferredUnit)}</p></div>
+          <div><p className="eyebrow">BMI guide</p><h2>Growth-aware guidance</h2><p className="baseline-meta">Age {age} · {genderLabel(profile.gender)} · Baseline {formatWeight(baseline.weightKg, profile.preferredUnit)}</p></div>
           <div className="bmi-score"><strong>{bmi.toFixed(1)}</strong><span>current BMI</span></div>
         </div>
         <div className="notice warning child-bmi-notice">
-          <strong>Adult BMI ranges do not apply at age {profile.age}.</strong>
+          <strong>Adult BMI ranges do not apply at age {age}.</strong>
           <span>Children and teens need BMI-for-age percentiles based on age and sex. Discuss an appropriate weight goal with a qualified healthcare professional.</span>
         </div>
         <p className="bmi-disclaimer">BMI is a screening measure, not a diagnosis.</p>
@@ -60,7 +62,7 @@ export function BmiGuide({ profile, onCompleteBaseline }: Props) {
         <div>
           <p className="eyebrow">BMI guide</p>
           <h2>A general guide for {formatHeight(profile.heightCm, profile.preferredUnit)}</h2>
-          <p className="baseline-meta">Age {profile.age} · {genderLabel(profile.gender)} · Baseline {formatWeight(baseline.weightKg, profile.preferredUnit)}</p>
+          <p className="baseline-meta">Age {age} · {genderLabel(profile.gender)} · Baseline {formatWeight(baseline.weightKg, profile.preferredUnit)}</p>
         </div>
         <div className="bmi-score"><strong>{bmi.toFixed(1)}</strong><span>{category}</span></div>
       </div>

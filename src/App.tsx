@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { ProfileForm } from './components/ProfileForm'
 import { ProgressChart } from './components/ProgressChart'
 import { BaselineForm } from './components/BaselineForm'
@@ -13,6 +13,7 @@ import {
   createProfile,
   completeProfileBaseline,
   loadState,
+  restoreStateFromBackup,
   saveState,
   setTheme,
   updateProfileSettings,
@@ -249,6 +250,7 @@ export default function App() {
   const [state, setState] = useState<AppState>(() => loadState())
   const [profileModal, setProfileModal] = useState(false)
   const [toast, setToast] = useState('')
+  const uploadInput = useRef<HTMLInputElement>(null)
   const activeProfile = useMemo(
     () => state.profiles.find((profile) => profile.id === state.activeProfileId) ?? state.profiles[0],
     [state],
@@ -275,6 +277,24 @@ export default function App() {
     }
   }
 
+  async function handleBackupUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (file.size > 5_000_000) {
+      setToast('Backup file is too large.')
+      return
+    }
+    try {
+      const restored = restoreStateFromBackup(await file.text())
+      if (!window.confirm(`Replace this browser’s current household with ${restored.profiles.length} restored profile${restored.profiles.length === 1 ? '' : 's'}?`)) return
+      setState(restored)
+      setToast('Household backup restored in this browser.')
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Could not restore this backup.')
+    }
+  }
+
   if (!activeProfile) {
     return (
       <main className="onboarding-shell">
@@ -284,7 +304,12 @@ export default function App() {
           <h1>Start your household’s health tracker.</h1>
           <p className="lead">Create the first person’s baseline. Existing profiles will appear automatically whenever this browser returns.</p>
           <ProfileForm onSubmit={handleNewProfile} />
-          <p className="privacy-note">No account. No cloud. No AI integration yet.</p>
+          <div className="onboarding-restore">
+            <span>Already have a household backup?</span>
+            <button className="button secondary" onClick={() => uploadInput.current?.click()}>Upload backup</button>
+            <input ref={uploadInput} className="sr-only" type="file" accept="application/json,.json" onChange={handleBackupUpload} tabIndex={-1} />
+          </div>
+          <p className="privacy-note">No account. No cloud. Household data stays in this browser and is never uploaded to the repository.</p>
         </section>
         {toast && <div className="toast" role="status">{toast}</div>}
       </main>
@@ -308,12 +333,14 @@ export default function App() {
               <option value="system">System theme</option><option value="light">Light theme</option><option value="dark">Dark theme</option>
             </select>
           </label>
-          <button className="button compact secondary export-all" onClick={() => exportAllJson(state)}>Backup JSON</button>
+          <button className="button compact secondary export-all" onClick={() => exportAllJson(state)}>Backup</button>
+          <button className="button compact secondary upload-backup" onClick={() => uploadInput.current?.click()}>Upload</button>
+          <input ref={uploadInput} className="sr-only" type="file" accept="application/json,.json" onChange={handleBackupUpload} tabIndex={-1} />
         </div>
       </header>
       <main id="top" className="main-content">
         <Dashboard profile={activeProfile} state={state} setState={setState} notify={setToast} />
-        <footer><span>Stored privately in this browser</span><span>•</span><span>{state.profiles.length} of {MAX_PROFILES} profiles</span><span>•</span><span>AI suggestions coming in a future release</span></footer>
+        <footer><span>Stored privately in this browser · never uploaded to the repository</span><span>•</span><span>{state.profiles.length} of {MAX_PROFILES} profiles</span><span>•</span><span>AI suggestions coming in a future release</span></footer>
       </main>
       {profileModal && <Modal title="Add a household member" onClose={() => setProfileModal(false)}><ProfileForm onSubmit={handleNewProfile} onCancel={() => setProfileModal(false)} /></Modal>}
       {toast && <div className="toast" role="status">{toast}</div>}

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { todayLocal } from '../lib/date'
 import { centimetersFromFeet, fromKilograms, toKilograms, unitRange } from '../lib/units'
 import type { Gender, Unit } from '../types'
 
@@ -6,7 +7,7 @@ interface ProfileInput {
   name: string
   preferredUnit: Unit
   heightCm: number
-  age: number
+  birthDate: string
   gender: Gender
   currentWeightKg: number
   baselineBodyFatPercent?: number
@@ -22,7 +23,7 @@ interface Props {
 export function ProfileForm({ onSubmit, onCancel }: Props) {
   const [name, setName] = useState('')
   const [unit, setUnit] = useState<Unit>('kg')
-  const [age, setAge] = useState('')
+  const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState<Gender>('prefer-not-to-say')
   const [heightCm, setHeightCm] = useState('')
   const [heightFeet, setHeightFeet] = useState('')
@@ -48,7 +49,7 @@ export function ProfileForm({ onSubmit, onCancel }: Props) {
       name,
       preferredUnit: unit,
       heightCm: resolvedHeight,
-      age: Number(age),
+      birthDate,
       gender,
       currentWeightKg: toKilograms(Number(currentWeight), unit),
       baselineBodyFatPercent: baselineBodyFat ? Number(baselineBodyFat) : undefined,
@@ -79,8 +80,9 @@ export function ProfileForm({ onSubmit, onCancel }: Props) {
         </label>
       </div>
       <label className="short-field">
-        Current age
-        <input type="number" required min="2" max="120" step="1" value={age} onChange={(event) => setAge(event.target.value)} placeholder="Years" />
+        Birthday
+        <input type="date" required max={todayLocal()} value={birthDate} onChange={(event) => setBirthDate(event.target.value)} />
+        <small className="field-note">Private to this browser and used only to calculate age.</small>
       </label>
 
       <div className="form-section-heading">

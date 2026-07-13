@@ -211,6 +211,7 @@ input::placeholder { color: var(--muted); }
 .bmi-target-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .bmi-target-actions button { min-height: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--primary); font-size: 0.72rem; font-weight: 800; }
 .bmi-disclaimer { margin: 16px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.bmi-disclaimer a { color: var(--primary); font-weight: 800; text-underline-offset: 3px; }
 .incomplete-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; background: linear-gradient(135deg, var(--surface), var(--primary-soft)); }
 .incomplete-card p:last-child { max-width: 650px; margin: 7px 0 0; color: var(--muted); }
 .child-bmi-notice { margin-bottom: 0; }

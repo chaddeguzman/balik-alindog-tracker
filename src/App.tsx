@@ -3,6 +3,7 @@ import { ProfileForm } from './components/ProfileForm'
 import { ProgressChart } from './components/ProgressChart'
 import { BaselineForm } from './components/BaselineForm'
 import { BmiGuide } from './components/BmiGuide'
+import { adultBodyFatGuide, estimateAdultBodyFatPercent } from './lib/bodyFat'
 import { calculateAge, formatDate, todayLocal } from './lib/date'
 import { exportAllJson, exportProfileCsv } from './lib/export'
 import {
@@ -240,6 +241,64 @@ function ProfileSummaryCard({ profile }: { profile: Profile }) {
   )
 }
 
+function BodyFatGuideCard({ profile, onSelectTarget }: { profile: Profile; onSelectTarget: (bodyFatPercent: number) => void }) {
+  const latest = profile.entries.at(-1)
+  const latestMeasured = [...profile.entries].reverse().find((entry) => entry.bodyFatPercent !== undefined)
+
+  if (!profile.heightCm || !profile.birthDate || !profile.gender || !latest) {
+    return (
+      <section className="card body-fat-guide-card">
+        <div>
+          <p className="eyebrow">Body-fat guide</p>
+          <h2>Complete profile stats for body-fat guidance</h2>
+          <p className="body-fat-copy">Height, birthday, gender, and weight are needed for a general estimate.</p>
+        </div>
+      </section>
+    )
+  }
+
+  const age = calculateAge(profile.birthDate)
+  if (age < 20) {
+    return (
+      <section className="card body-fat-guide-card">
+        <div>
+          <p className="eyebrow">Body-fat guide</p>
+          <h2>Adult guidance starts at age 20</h2>
+          <p className="body-fat-copy">For teens and children, body composition goals should use age- and sex-specific professional guidance.</p>
+        </div>
+      </section>
+    )
+  }
+
+  const guide = adultBodyFatGuide(profile.gender)
+  const currentBodyFat = latestMeasured?.bodyFatPercent ?? estimateAdultBodyFatPercent({
+    age,
+    gender: profile.gender,
+    heightCm: profile.heightCm,
+    weightKg: latest.weightKg,
+  })
+  const source = latestMeasured?.bodyFatPercent === undefined ? 'estimated from BMI, age, and gender' : 'latest recorded'
+
+  return (
+    <section className="card body-fat-guide-card">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Body-fat guide</p>
+          <h2>General adult target</h2>
+          <p className="baseline-meta">{guide.label} · {source}</p>
+        </div>
+        <div className="body-fat-score"><strong>{currentBodyFat.toFixed(1)}%</strong><span>current</span></div>
+      </div>
+      <div className="body-fat-grid">
+        <div><span>Low</span><strong>{guide.low.toFixed(1)}%</strong></div>
+        <div><span>Suggested</span><strong>{guide.suggested.toFixed(1)}%</strong><button type="button" onClick={() => onSelectTarget(guide.suggested)}>Use goal</button></div>
+        <div><span>High</span><strong>{guide.high.toFixed(1)}%</strong></div>
+      </div>
+      <p className="body-fat-copy">This is a screening guide, not a diagnosis. Body-fat estimates from BMI can be inaccurate for athletes, very muscular people, pregnancy, medical conditions, or unusual hydration status.</p>
+    </section>
+  )
+}
+
 function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { profile: Profile; state: AppState; setState: (state: AppState) => void; notify: (message: string) => void; backupDue: boolean; onBackup: () => void }) {
   const [entryOpen, setEntryOpen] = useState(false)
   const [baselineOpen, setBaselineOpen] = useState(false)
@@ -340,6 +399,15 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
           goalBodyFatPercent: profile.goalBodyFatPercent,
         }))
         notify('Target weight updated from the BMI guide.')
+      }} />
+
+      <BodyFatGuideCard profile={profile} onSelectTarget={(goalBodyFatPercent) => {
+        setState(updateProfileSettings(state, profile.id, {
+          preferredUnit: profile.preferredUnit,
+          goalWeightKg: profile.goalWeightKg,
+          goalBodyFatPercent,
+        }))
+        notify('Target body-fat goal updated from the guide.')
       }} />
 
       <ProgressChart profile={profile} />

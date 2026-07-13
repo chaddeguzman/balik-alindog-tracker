@@ -138,4 +138,24 @@ describe('Balik Alindog Tracker', () => {
     expect(screen.getByRole('button', { name: /6m/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /all/i })).not.toBeInTheDocument()
   })
+
+  it('shows adult body-fat guidance and can set the suggested goal', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Ria',
+      preferredUnit: 'kg',
+      heightCm: 165,
+      birthDate: '1992-05-10',
+      gender: 'female',
+      currentWeightKg: 80,
+      goalWeightKg: 68,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+
+    expect(screen.getByRole('heading', { name: /general adult target/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /use goal/i }))
+    expect(await screen.findByText(/target body-fat goal updated/i)).toBeInTheDocument()
+  })
 })

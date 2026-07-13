@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Balik Alindog Tracker dumbbell icon">
+  <rect width="64" height="64" rx="18" fill="#eaf7ef"/>
+  <path d="M15 25v14M21 20v24M43 20v24M49 25v14" stroke="#1f8a4c" stroke-width="6" stroke-linecap="round"/>
+  <path d="M22 32h20" stroke="#163d2a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M32 17c4 4 7 8 7 13 0 5-3 9-7 9s-7-4-7-9c0-5 3-9 7-13z" fill="#ffcf5a" opacity=".9"/>
+  <path d="M29 31c1.5 1.8 4.5 1.8 6 0" stroke="#163d2a" stroke-width="2.5" stroke-linecap="round" fill="none" opacity=".65"/>
+</svg>

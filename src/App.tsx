@@ -294,7 +294,10 @@ function BodyFatGuideCard({ profile, onSelectTarget }: { profile: Profile; onSel
         <div><span>Suggested</span><strong>{guide.suggested.toFixed(1)}%</strong><button type="button" onClick={() => onSelectTarget(guide.suggested)}>Use goal</button></div>
         <div><span>High</span><strong>{guide.high.toFixed(1)}%</strong></div>
       </div>
-      <p className="body-fat-copy">This is a screening guide, not a diagnosis. Body-fat estimates from BMI can be inaccurate for athletes, very muscular people, pregnancy, medical conditions, or unusual hydration status.</p>
+      <p className="body-fat-copy">
+        This is a screening guide, not a diagnosis. Body-fat estimates from BMI can be inaccurate for athletes, very muscular people, pregnancy, medical conditions, or unusual hydration status.
+        {' '}<a href="https://inbodyusa.com/blogs/inbodyblog/body-fat-percentage-chart/" target="_blank" rel="noreferrer">Source: InBody body-fat percentage chart</a>.
+      </p>
     </section>
   )
 }

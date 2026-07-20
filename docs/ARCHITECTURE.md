@@ -35,9 +35,9 @@ BMI is calculated as kilograms divided by height in meters squared. Profiles age
 
 `localStorage` is appropriate for a zero-service first version, but it is tied to one browser origin and can be cleared by the user or browser. Complete JSON export provides a portable backup. A future mobile or synchronized version should place the same domain model behind a repository interface backed by SQLite or a server database.
 
-## Future AI boundary
+## Health chat boundary
 
-AI functionality must stay separate from measurement storage and charting:
+AI functionality stays separate from measurement storage and charting:
 
 ```text
 SuggestionService
@@ -45,9 +45,11 @@ SuggestionService
 └── GeminiSuggestionProvider
 ```
 
-Providers should accept a deliberately limited, user-approved context object rather than direct access to all application state. A public web build must not contain a shared Gemini secret. A later design can use either a user-provided key stored locally or a server-side proxy with authentication and rate limits.
+The health chat sends a deliberately limited context object for the active profile only: profile details, goals, latest values, and that profile's measurement history. It does not send other household profiles or raw backup data.
 
-No AI provider, API key handling, meal plan, or activity suggestion is included in the current release.
+The browser build reads `VITE_HEALTH_API` into the `HEALTH_API` constant used by `health_track_api.js`. Because Vite exposes `VITE_` variables in the public bundle, this is configuration rather than a true secret. Missing configuration disables live chat responses gracefully. A future version that needs a protected shared key should use a server-side proxy with authentication and rate limits.
+
+The assistant is positioned as a wellness coach, not medical advice. Prompt rules tell it not to diagnose, prescribe, recommend medication, or propose unsafe weight-loss behaviors.
 
 ## Accessibility
 

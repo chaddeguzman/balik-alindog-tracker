@@ -23,6 +23,7 @@ import {
 } from './lib/storage'
 import { estimateGoalDate, sevenDayAverage, weeklyAverageChange } from './lib/trends'
 import { centimetersFromFeet, formatHeight, formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
+import { addHealthMemory, extractHealthMemoryCommand, sendHealthChatMessage } from './lib/healthTrackApi'
 import type { AppState, Gender, Measurement, Profile, Unit } from './types'
 
 const LAST_BACKUP_KEY = 'balik-alindog-tracker:last-backup-at'
@@ -249,6 +250,102 @@ function ProfileDetails({ profile }: { profile: Profile }) {
         <div><dt>Target</dt><dd>{formatWeight(profile.goalWeightKg, profile.preferredUnit)}</dd></div>
       </dl>
     </div>
+  )
+}
+
+interface HealthChatMessage {
+  id: string
+  role: 'assistant' | 'user'
+  text: string
+  isError?: boolean
+}
+
+function HealthChat({ profile }: { profile: Profile }) {
+  const [open, setOpen] = useState(false)
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [messages, setMessages] = useState<HealthChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      text: `Hi ${profile.name}. I can help you understand your tracker trends and build sustainable habits.`,
+    },
+  ])
+  const messagesRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    if (messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight
+  }, [messages, open])
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    const userText = input.trim()
+    if (!userText || sending) return
+
+    setInput('')
+    setSending(true)
+    setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'user', text: userText }])
+
+    try {
+      const memoryText = extractHealthMemoryCommand(userText)
+      const reply = memoryText
+        ? addHealthMemory(memoryText) && `I'll remember: ${memoryText}`
+        : await sendHealthChatMessage(userText, profile)
+      setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'assistant', text: reply || 'I could not generate a response. Please try again.' }])
+    } catch (error) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          text: error instanceof Error ? error.message : 'Health chat is unavailable right now. Please try again later.',
+          isError: true,
+        },
+      ])
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <aside className={`health-chat ${open ? 'is-open' : ''}`} aria-label="Health chat assistant">
+      <button className="health-chat-toggle" type="button" aria-expanded={open} aria-controls="health-chat-panel" onClick={() => setOpen((value) => !value)}>
+        Chat
+      </button>
+      <section id="health-chat-panel" className="health-chat-panel" hidden={!open}>
+        <div className="health-chat-header">
+          <div>
+            <p className="eyebrow">Health chat</p>
+            <h2>Wellness coach</h2>
+          </div>
+          <button className="icon-button" type="button" aria-label="Close health chat" onClick={() => setOpen(false)}>Ã—</button>
+        </div>
+        <p className="health-chat-disclaimer">
+          Not medical advice. Messages may include {profile.name}'s tracker history for context.
+        </p>
+        <div ref={messagesRef} className="health-chat-messages" aria-live="polite" aria-busy={sending}>
+          {messages.map((message) => (
+            <div key={message.id} className={`health-chat-message ${message.role === 'user' ? 'user-message' : 'assistant-message'} ${message.isError ? 'is-error' : ''}`}>
+              {message.text}
+            </div>
+          ))}
+          {sending && <div className="health-chat-message assistant-message is-loading">Thinking...</div>}
+        </div>
+        <form className="health-chat-form" onSubmit={submit}>
+          <label className="sr-only" htmlFor="health-chat-input">Message health chat</label>
+          <textarea
+            id="health-chat-input"
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Ask about your progress..."
+            rows={2}
+            disabled={sending}
+          />
+          <button className="button primary compact" type="submit" disabled={sending || !input.trim()}>Send</button>
+        </form>
+      </section>
+    </aside>
   )
 }
 
@@ -518,6 +615,7 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
           notify(error instanceof Error ? error.message : 'Could not save the baseline.')
         }
       }} /></Modal>}
+      <HealthChat key={profile.id} profile={profile} />
     </>
   )
 }
@@ -647,7 +745,7 @@ export default function App() {
           backupDue={backupDue}
           onBackup={handleBackupDownload}
         />
-        <footer><span>Stored privately in this browser · never uploaded to the repository</span><span>•</span><span>{state.profiles.length} of {MAX_PROFILES} profiles</span><span>•</span><span>AI suggestions coming in a future release</span></footer>
+        <footer><span>Stored privately in this browser · never uploaded to the repository</span><span>•</span><span>{state.profiles.length} of {MAX_PROFILES} profiles</span><span>•</span><span>Health chat uses the active profile only</span></footer>
       </main>
       {profileModal && <Modal title="Add a household member" onClose={() => setProfileModal(false)}><ProfileForm onSubmit={handleNewProfile} onCancel={() => setProfileModal(false)} /></Modal>}
       {toast && <div className="toast" role="status">{toast}</div>}

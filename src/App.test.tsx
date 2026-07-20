@@ -47,6 +47,34 @@ describe('Balik Alindog Tracker', () => {
     expect(screen.getByLabelText(/active household member/i)).toHaveValue(existing.id)
   })
 
+  it('opens health chat and handles a missing API key without crashing', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Jamie',
+      preferredUnit: 'kg',
+      heightCm: 168,
+      birthDate: '1984-03-20',
+      gender: 'male',
+      currentWeightKg: 76,
+      goalWeightKg: 68,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: /chat/i }))
+
+    const chat = screen.getByRole('complementary', { name: /health chat assistant/i })
+    expect(within(chat).getByText(/not medical advice/i)).toBeInTheDocument()
+    expect(within(chat).getByText(/jamie's tracker history/i)).toBeInTheDocument()
+
+    await user.type(within(chat).getByLabelText(/message health chat/i), 'How is my trend?')
+    await user.click(within(chat).getByRole('button', { name: /send/i }))
+
+    expect(await within(chat).findByText('How is my trend?')).toBeInTheDocument()
+    expect(await within(chat).findByText(/health chat is not configured yet/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /good day, jamie/i })).toBeInTheDocument()
+  })
+
   it('opens profile details from the greeting name', async () => {
     const user = userEvent.setup()
     const existing = createProfile({

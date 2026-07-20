@@ -66,7 +66,7 @@ describe('Balik Alindog Tracker', () => {
     await user.click(screen.getByRole('button', { name: 'Jamie' }))
     const dialog = screen.getByRole('dialog', { name: 'Jamie' })
 
-    expect(within(dialog).getByText('168.0 cm')).toBeInTheDocument()
+    expect(within(dialog).getByText('168 cm')).toBeInTheDocument()
     expect(within(dialog).getByText('Male')).toBeInTheDocument()
     expect(within(dialog).getByText('68.0 kg')).toBeInTheDocument()
   })

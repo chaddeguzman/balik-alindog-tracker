@@ -47,7 +47,7 @@ SuggestionService
 
 The health chat sends a deliberately limited context object for the active profile only: profile details, goals, latest values, and that profile's measurement history. It does not send other household profiles or raw backup data.
 
-The browser build reads `VITE_HEALTH_API` into the `HEALTH_API` constant used by `health_track_api.js`. Because Vite exposes `VITE_` variables in the public bundle, this is configuration rather than a true secret. Missing configuration disables live chat responses gracefully. A future version that needs a protected shared key should use a server-side proxy with authentication and rate limits.
+The browser build reads `HEALTH_API` into the `HEALTH_API` constant used by `health_track_api.js`, with `VITE_HEALTH_API` kept as a local-development fallback. Because the value is embedded in the public browser bundle, this is configuration rather than a true secret. Missing configuration disables live chat responses gracefully. A future version that needs a protected shared key should use a server-side proxy with authentication and rate limits.
 
 The assistant is positioned as a wellness coach, not medical advice. Prompt rules tell it not to diagnose, prescribe, recommend medication, or propose unsafe weight-loss behaviors.
 

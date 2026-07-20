@@ -2,11 +2,11 @@ import { calculateAge } from './date'
 import { formatHeight, formatWeight } from './units'
 import type { Profile } from '../types'
 
-export const HEALTH_API = import.meta.env.VITE_HEALTH_API ?? ''
+export const HEALTH_API = import.meta.env.HEALTH_API ?? import.meta.env.VITE_HEALTH_API ?? ''
 export const MODEL_NAME = 'gemini-3.1-flash-lite'
 export const HEALTH_MEMORY_STORAGE_KEY = 'balik-alindog-health-chat-memory'
 export const MISSING_HEALTH_API_MESSAGE =
-  'Health chat is not configured yet. Add VITE_HEALTH_API to enable live responses.'
+  'Health chat is not configured yet. Add HEALTH_API to enable live responses.'
 
 const API_KEY_PLACEHOLDERS = new Set(['', 'HEALTH_API', 'VITE_HEALTH_API', '__HEALTH_API__', '__VITE_HEALTH_API__'])
 

@@ -23,7 +23,7 @@ import {
 } from './lib/storage'
 import { estimateGoalDate, sevenDayAverage, weeklyAverageChange } from './lib/trends'
 import { centimetersFromFeet, formatHeight, formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
-import type { AppState, Gender, Measurement, Profile, Theme, Unit } from './types'
+import type { AppState, Gender, Measurement, Profile, Unit } from './types'
 
 const LAST_BACKUP_KEY = 'balik-alindog-tracker:last-backup-at'
 const BACKUP_REMINDER_DAYS = 14
@@ -510,6 +510,8 @@ export default function App() {
     () => state.profiles.find((profile) => profile.id === state.activeProfileId) ?? state.profiles[0],
     [state],
   )
+  const prefersDark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDarkTheme = state.theme === 'dark' || (state.theme === 'system' && prefersDark)
 
   useEffect(() => saveState(state), [state])
   useEffect(() => {
@@ -557,6 +559,10 @@ export default function App() {
     }
   }
 
+  function toggleTheme() {
+    setState(setTheme(state, isDarkTheme ? 'light' : 'dark'))
+  }
+
   if (!activeProfile) {
     return (
       <main className="onboarding-shell">
@@ -590,11 +596,21 @@ export default function App() {
             </select>
           </label>
           <button className="button compact secondary add-person" disabled={state.profiles.length >= MAX_PROFILES} onClick={() => setProfileModal(true)}><span aria-hidden="true">+</span><span className="add-person-text">Add person</span></button>
-          <label className="theme-select"><span className="sr-only">Color theme</span>
-            <select value={state.theme} onChange={(event) => setState(setTheme(state, event.target.value as Theme))}>
-              <option value="system">System theme</option><option value="light">Light theme</option><option value="dark">Dark theme</option>
-            </select>
-          </label>
+          <button
+            className="theme-toggle"
+            id="themeToggle"
+            type="button"
+            aria-label="Toggle light/dark mode"
+            aria-pressed={isDarkTheme}
+            onClick={toggleTheme}
+          >
+            <span className="theme-toggle-track">
+              <span className="theme-toggle-thumb">
+                <span className="theme-toggle-icon theme-toggle-icon--dark">🌙</span>
+                <span className="theme-toggle-icon theme-toggle-icon--light">☀️</span>
+              </span>
+            </span>
+          </button>
           <button className="button compact secondary export-all" onClick={handleBackupDownload}>Backup</button>
           <button className="button compact secondary upload-backup" onClick={() => uploadInput.current?.click()}>Upload</button>
           <input ref={uploadInput} className="sr-only" type="file" accept="application/json,.json" onChange={handleBackupUpload} tabIndex={-1} />

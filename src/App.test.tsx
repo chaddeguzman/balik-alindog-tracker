@@ -2,8 +2,8 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import App from './App'
-import { addProfile, createProfile, initialState, saveState } from './lib/storage'
-import { todayLocal } from './lib/date'
+import { addMeasurement, addProfile, createMeasurement, createProfile, initialState, saveState } from './lib/storage'
+import { formatDate, todayLocal } from './lib/date'
 
 describe('Balik Alindog Tracker', () => {
   it('guides a new user through profile setup', () => {
@@ -148,6 +148,36 @@ describe('Balik Alindog Tracker', () => {
     expect(await screen.findByText(/measurement edit saved/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /edited/i })).toBeDisabled()
     expect(screen.getAllByText('79.4 kg').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('only allows editing today and pages history five entries at a time', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Kai',
+      preferredUnit: 'kg',
+      heightCm: 170,
+      birthDate: '1990-01-15',
+      gender: 'male',
+      currentWeightKg: 80,
+      goalWeightKg: 70,
+    })
+    let state = addProfile(initialState, existing)
+    for (let day = 1; day <= 6; day += 1) {
+      state = addMeasurement(state, existing.id, createMeasurement({ date: `2026-01-0${day}`, weightKg: 86 - day }))
+    }
+    saveState(state)
+
+    render(<App />)
+
+    expect(screen.getAllByRole('button', { name: /edit entry/i })).toHaveLength(1)
+    expect(screen.getAllByText(formatDate(todayLocal())).length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText(formatDate('2026-01-01'))).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /show older entries/i }))
+
+    expect(screen.queryByRole('button', { name: /edit entry/i })).not.toBeInTheDocument()
+    expect(screen.getByText(formatDate('2026-01-01'))).toBeInTheDocument()
+    expect(screen.getByText(/page 2 of 2/i)).toBeInTheDocument()
   })
 
   it('shows a sample forecast in the progress chart', async () => {

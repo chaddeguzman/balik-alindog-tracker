@@ -27,6 +27,7 @@ import type { AppState, Gender, Measurement, Profile, Unit } from './types'
 
 const LAST_BACKUP_KEY = 'balik-alindog-tracker:last-backup-at'
 const BACKUP_REMINDER_DAYS = 14
+const HISTORY_PAGE_SIZE = 5
 
 function isBackupDue(lastBackupAt: string | null): boolean {
   return !lastBackupAt || Date.now() - new Date(lastBackupAt).getTime() > BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000
@@ -318,11 +319,16 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
   const [baselineOpen, setBaselineOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [profileDetailsOpen, setProfileDetailsOpen] = useState(false)
+  const [historyPage, setHistoryPage] = useState(0)
   const entries = profile.entries
+  const today = todayLocal()
+  const sortedHistory = [...entries].reverse()
+  const historyPageCount = Math.max(1, Math.ceil(sortedHistory.length / HISTORY_PAGE_SIZE))
+  const visibleHistory = sortedHistory.slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE)
   const latest = entries.at(-1)
   const latestBodyFat = [...entries].reverse().find((entry) => entry.bodyFatPercent !== undefined)
   const first = entries[0]
-  const hasToday = entries.some((entry) => entry.date === todayLocal())
+  const hasToday = entries.some((entry) => entry.date === today)
   const change = latest && first ? latest.weightKg - first.weightKg : 0
   const remaining = latest ? latest.weightKg - profile.goalWeightKg : null
   const average7 = sevenDayAverage(entries)
@@ -331,6 +337,10 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
   const progress = latest && first && first.weightKg !== profile.goalWeightKg
     ? Math.max(0, Math.min(100, ((first.weightKg - latest.weightKg) / (first.weightKg - profile.goalWeightKg)) * 100))
     : 0
+
+  useEffect(() => {
+    setHistoryPage(0)
+  }, [profile.id, entries.length])
 
   function saveEntry(date: string, weightKg: number, bodyFat?: number) {
     try {
@@ -452,21 +462,32 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
           {entries.length ? (
             <div className="table-scroll"><table>
               <thead><tr><th>Date</th><th>Weight</th><th>Body fat</th><th>Action</th></tr></thead>
-              <tbody>{[...entries].reverse().slice(0, 8).map((entry) => (
+              <tbody>{visibleHistory.map((entry) => (
                 <tr key={entry.id}>
                   <td>{formatDate(entry.date)}</td>
                   <td>{formatWeight(entry.weightKg, profile.preferredUnit)}</td>
                   <td>{entry.bodyFatPercent !== undefined ? `${entry.bodyFatPercent.toFixed(1)}%` : '—'}</td>
                   <td>
-                    <button className="button compact secondary" type="button" disabled={Boolean(entry.editedAt)} onClick={() => setEditingEntry(entry)}>
-                      {entry.editedAt ? 'Edited' : 'Edit Entry'}
-                    </button>
+                    {entry.date === today ? (
+                      <button className="button compact secondary" type="button" disabled={Boolean(entry.editedAt)} onClick={() => setEditingEntry(entry)}>
+                        {entry.editedAt ? 'Edited' : 'Edit Entry'}
+                      </button>
+                    ) : (
+                      <span className="history-action-empty">—</span>
+                    )}
                   </td>
                 </tr>
               ))}</tbody>
             </table></div>
           ) : <p className="empty-copy">No measurements recorded yet.</p>}
-          <p className="immutable-note">Each entry can be edited once. Measurement dates and deleted entries stay locked.</p>
+          {entries.length > HISTORY_PAGE_SIZE && (
+            <div className="history-pagination" aria-label="Measurement history pages">
+              <button className="button compact secondary" type="button" disabled={historyPage === 0} onClick={() => setHistoryPage((page) => Math.max(0, page - 1))} aria-label="Show newer entries">←</button>
+              <span>Page {historyPage + 1} of {historyPageCount}</span>
+              <button className="button compact secondary" type="button" disabled={historyPage >= historyPageCount - 1} onClick={() => setHistoryPage((page) => Math.min(historyPageCount - 1, page + 1))} aria-label="Show older entries">→</button>
+            </div>
+          )}
+          <p className="immutable-note">Only today's entry can be edited, and only once. Older measurement dates stay locked.</p>
         </section>
 
         <section className="card settings-card">

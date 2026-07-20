@@ -4,6 +4,7 @@ import { ProgressChart } from './components/ProgressChart'
 import { BaselineForm } from './components/BaselineForm'
 import { BmiGuide } from './components/BmiGuide'
 import { CalorieTracker } from './components/CalorieTracker'
+import { TdeeSettingsFields } from './components/TdeeSettingsFields'
 import { adultBodyFatGuide, estimateAdultBodyFatPercent } from './lib/bodyFat'
 import { calculateAge, formatDate, todayLocal } from './lib/date'
 import { exportAllJson, exportProfileCsv } from './lib/export'
@@ -23,9 +24,10 @@ import {
   updateProfileSettings,
 } from './lib/storage'
 import { estimateGoalDate, sevenDayAverage, weeklyAverageChange } from './lib/trends'
+import { ACTIVITY_LABELS, calculateProfileTdee } from './lib/tdee'
 import { centimetersFromFeet, formatHeight, formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
 import { addHealthMemory, extractHealthMemoryCommand, sendHealthChatMessage } from './lib/healthTrackApi'
-import type { AppState, FoodLibraryEntry, Gender, Measurement, Profile, Unit } from './types'
+import type { ActivityLevel, AppState, FoodLibraryEntry, Gender, Measurement, Profile, Unit } from './types'
 
 const LAST_BACKUP_KEY = 'balik-alindog-tracker:last-backup-at'
 const BACKUP_REMINDER_DAYS = 14
@@ -120,11 +122,28 @@ function EntryForm({
   )
 }
 
-function EditProfileForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (input: { name: string; heightCm: number; birthDate: string; gender: Gender }) => void; onCancel: () => void }) {
+function EditProfileForm({
+  profile,
+  onSave,
+  onCancel,
+}: {
+  profile: Profile
+  onSave: (input: {
+    name: string
+    heightCm: number
+    birthDate: string
+    gender: Gender
+    activityLevel: ActivityLevel
+    weeklyLossTargetKg: number
+  }) => void
+  onCancel: () => void
+}) {
   const totalInches = profile.heightCm ? profile.heightCm / 2.54 : 0
   const [name, setName] = useState(profile.name)
   const [birthDate, setBirthDate] = useState(profile.birthDate ?? '')
   const [gender, setGender] = useState<Gender | ''>(profile.gender ?? '')
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel | ''>(profile.activityLevel ?? '')
+  const [weeklyLossTargetKg, setWeeklyLossTargetKg] = useState(profile.weeklyLossTargetKg ?? 0.5)
   const [heightCm, setHeightCm] = useState(profile.heightCm?.toFixed(1) ?? '')
   const [heightFeet, setHeightFeet] = useState(profile.heightCm ? String(Math.floor(totalInches / 12)) : '')
   const [heightInches, setHeightInches] = useState(profile.heightCm ? (totalInches % 12).toFixed(1) : '')
@@ -136,6 +155,8 @@ function EditProfileForm({ profile, onSave, onCancel }: { profile: Profile; onSa
       heightCm: profile.preferredUnit === 'kg' ? Number(heightCm) : centimetersFromFeet(Number(heightFeet), Number(heightInches || 0)),
       birthDate,
       gender: gender as Gender,
+      activityLevel: activityLevel as ActivityLevel,
+      weeklyLossTargetKg,
     })
   }
 
@@ -172,6 +193,16 @@ function EditProfileForm({ profile, onSave, onCancel }: { profile: Profile; onSa
           <label>Inches<input type="number" required min="0" max="11.9" step="0.1" value={heightInches} onChange={(event) => setHeightInches(event.target.value)} /></label>
         </div>
       )}
+      <div className="form-section-heading">
+        <span>+</span>
+        <div><h3>Daily calorie estimate</h3><p>Required for the adult Dashboard TDEE target.</p></div>
+      </div>
+      <TdeeSettingsFields
+        activityLevel={activityLevel}
+        weeklyLossTargetKg={weeklyLossTargetKg}
+        onActivityLevelChange={setActivityLevel}
+        onWeeklyLossTargetChange={setWeeklyLossTargetKg}
+      />
       <div className="form-actions">
         <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
         <button className="button primary" type="submit">Save profile</button>
@@ -246,6 +277,8 @@ function ProfileDetails({ profile }: { profile: Profile }) {
         <div><dt>Height</dt><dd>{profile.heightCm ? formatHeight(profile.heightCm, profile.preferredUnit) : 'Missing'}</dd></div>
         <div><dt>Age</dt><dd>{profile.birthDate ? calculateAge(profile.birthDate) : 'Missing'}</dd></div>
         <div><dt>Gender</dt><dd>{genderLabel(profile.gender)}</dd></div>
+        <div><dt>Activity</dt><dd>{profile.activityLevel ? ACTIVITY_LABELS[profile.activityLevel] : 'Not configured'}</dd></div>
+        <div><dt>Weekly loss</dt><dd>{profile.weeklyLossTargetKg === undefined ? 'Not configured' : `${profile.weeklyLossTargetKg.toFixed(1)} kg`}</dd></div>
         <div><dt>Starting</dt><dd>{baseline ? formatWeight(baseline.weightKg, profile.preferredUnit) : 'Missing'}</dd></div>
         <div><dt>Current</dt><dd>{latest ? formatWeight(latest.weightKg, profile.preferredUnit) : 'Missing'}</dd></div>
         <div><dt>Target</dt><dd>{formatWeight(profile.goalWeightKg, profile.preferredUnit)}</dd></div>
@@ -502,6 +535,52 @@ function BodyFatGuideCard({ profile, onSelectTarget }: { profile: Profile; onSel
   )
 }
 
+function TdeeMetricCard({
+  profile,
+  onConfigure,
+}: {
+  profile: Profile
+  onConfigure: () => void
+}) {
+  const estimate = calculateProfileTdee(profile)
+  let value = 'Unavailable'
+  let detail = 'Complete profile measurements first.'
+
+  if (estimate.status === 'ready') {
+    value = `${estimate.roundedDailyTargetCalories?.toLocaleString()} kcal`
+    detail = `${ACTIVITY_LABELS[profile.activityLevel!]} · ${profile.weeklyLossTargetKg?.toFixed(1)} kg/week`
+  } else if (estimate.status === 'underage') {
+    value = 'Adults 20+ only'
+    detail = 'Younger profiles need age-specific professional guidance.'
+  } else if (estimate.status === 'underweight') {
+    value = 'Weight-loss target unavailable'
+    detail = 'Weight-loss targets are not shown below BMI 18.5.'
+  } else if (estimate.status === 'goal-reached') {
+    value = 'Goal reached'
+    detail = 'A calorie deficit is not suggested at or below goal weight.'
+  } else if (estimate.status === 'not-viable') {
+    value = 'Target not viable'
+    detail = 'The selected pace produces a zero or negative calorie estimate.'
+  }
+
+  return (
+    <article className={`metric-card tdee-metric-card ${estimate.belowMinimum ? 'is-warning' : ''}`}>
+      <span>Estimated daily calorie target</span>
+      {estimate.status === 'missing-settings' ? (
+        <>
+          <strong className="metric-status">Setup needed</strong>
+          <button className="button compact secondary tdee-setup-button" type="button" onClick={onConfigure}>Complete TDEE settings</button>
+        </>
+      ) : (
+        <>
+          <strong className={estimate.status === 'ready' ? '' : 'metric-status'}>{value}</strong>
+          <small>{detail}</small>
+        </>
+      )}
+    </article>
+  )
+}
+
 function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { profile: Profile; state: AppState; setState: (state: AppState) => void; notify: (message: string) => void; backupDue: boolean; onBackup: () => void }) {
   const [entryOpen, setEntryOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<Measurement | null>(null)
@@ -524,6 +603,7 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
   const average7 = sevenDayAverage(entries)
   const weeklyChange = weeklyAverageChange(entries)
   const goalDate = estimateGoalDate(entries, profile.goalWeightKg)
+  const tdeeEstimate = calculateProfileTdee(profile)
   const progress = latest && first && first.weightKg !== profile.goalWeightKg
     ? Math.max(0, Math.min(100, ((first.weightKg - latest.weightKg) / (first.weightKg - profile.goalWeightKg)) * 100))
     : 0
@@ -605,7 +685,23 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
           <strong>{average7 !== null ? formatWeight(average7, profile.preferredUnit) : '—'}</strong>
           <small>{weeklyChangeLabel(weeklyChange, profile.preferredUnit)}</small>
         </article>
+        <TdeeMetricCard profile={profile} onConfigure={() => setEditOpen(true)} />
       </section>
+
+      {tdeeEstimate.status === 'ready' && tdeeEstimate.belowMinimum && (
+        <div className="notice warning tdee-warning" role="alert">
+          <strong>Very low calorie estimate</strong>
+          <span>
+            The selected settings calculate approximately {tdeeEstimate.roundedDailyTargetCalories?.toLocaleString()} kcal/day.
+            Intake below 1,200 kcal/day is not advised without guidance from a qualified health professional.
+          </span>
+        </div>
+      )}
+      {tdeeEstimate.status === 'ready' && (
+        <p className="tdee-disclaimer">
+          This is a static estimate, not medical advice. It is not intended for pregnancy, breastfeeding, relevant medical conditions, or individualized athletic nutrition.
+        </p>
+      )}
 
       <section className="metric-grid trend-grid" aria-label="Trend and goal summary">
         <article className="metric-card">

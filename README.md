@@ -10,6 +10,7 @@ A private, browser-based tracker for daily weight and body-fat progress. It supp
 - Weight stored canonically in kilograms and optionally displayed in pounds
 - Weight graph with a body-fat toggle and 7/30/90-day or all-time ranges
 - Target weight, optional body-fat target, and progress summaries
+- Adult daily calorie-target estimate using profile activity and a 0.5-0.9 kg weekly-loss setting
 - Adult BMI chart with categories, target BMI, and a height-based general healthy-weight range
 - Growth-aware messaging for children and teens instead of applying adult BMI targets
 - Up to 10 browser-local profiles without accounts
@@ -53,7 +54,9 @@ Only today's measurement can be edited, and it can be edited once. Older measure
 
 BMI is presented as a general screening guide, not a diagnosis or personalized medical recommendation. Adult categories and the height-based range are shown only for people age 20 or older. Profiles age 2–19 are directed toward age- and sex-specific professional guidance.
 
-Backups include profiles, measurements, settings, and the shared food library. They can be uploaded into another browser or workstation; restoring a backup replaces the household data stored in that browser.
+The daily calorie target is a static adult estimate based on the Mifflin-St Jeor equation, the latest weight, and a self-selected activity level. It is not medical advice and is not shown for profiles under age 20, below BMI 18.5, at or below goal weight, or when the calculation is not viable. Results below 1,200 calories per day remain visible only with a prominent professional-guidance warning.
+
+Backups include profiles, measurements, settings, TDEE preferences, and the shared food library. They can be uploaded into another browser or workstation; restoring a backup replaces the household data stored in that browser.
 
 ## Deployment
 

@@ -122,7 +122,7 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .backup-reminder { justify-content: space-between; }
 .backup-reminder > span:nth-child(2) { flex: 1; }
 
-.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 18px; }
+.metric-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 15px; margin-bottom: 18px; }
 .trend-grid { grid-template-columns: 1fr 1fr; }
 .metric-card, .card { background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
 .metric-card { min-height: 145px; padding: 22px; border-radius: 18px; display: flex; flex-direction: column; }
@@ -131,6 +131,11 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .metric-card.featured > span, .metric-card.featured small { color: rgba(255,255,255,.75); }
 .metric-card strong { margin: auto 0 4px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: clamp(1.55rem, 2.6vw, 2.1rem); letter-spacing: -0.04em; }
 .metric-card small { min-height: 18px; color: var(--muted); }
+.metric-card .metric-status { font-size: 1rem; line-height: 1.3; letter-spacing: 0; overflow-wrap: anywhere; }
+.tdee-metric-card.is-warning { border-color: color-mix(in srgb, var(--danger) 38%, var(--border)); background: var(--danger-soft); }
+.tdee-setup-button { width: 100%; margin-top: auto; white-space: normal; line-height: 1.2; }
+.tdee-warning span { line-height: 1.5; }
+.tdee-disclaimer { margin: -7px 0 18px; color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
 .progress-track { height: 8px; margin: 13px 0 3px; background: var(--surface-soft); border-radius: 999px; overflow: hidden; }
 .progress-track span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
 
@@ -212,6 +217,10 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .field-note { display: block; margin-top: 6px; color: var(--muted); font-size: 0.7rem; font-weight: 400; line-height: 1.4; }
 .form-actions { display: flex; justify-content: flex-end; gap: 9px; }
 .helper-text { color: var(--muted); margin: 0; font-size: 0.88rem; }
+.tdee-settings-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tdee-settings-fields output { color: var(--primary); font-weight: 800; }
+.tdee-rate-slider { min-height: 28px; padding: 0; accent-color: var(--primary); }
+.range-labels { display: flex; justify-content: space-between; margin-top: 2px; color: var(--muted); font-size: 0.7rem; font-weight: 500; }
 .settings-form { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
 .settings-form .form-grid { width: 100%; }
 .settings-card .form-grid.three { grid-template-columns: 1fr; }
@@ -326,6 +335,11 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .onboarding-restore { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 26px; padding: 16px; border: 1px dashed var(--border); border-radius: 14px; color: var(--muted); font-size: 0.84rem; }
 footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padding: 32px 0 0; color: var(--muted); font-size: 0.75rem; }
 
+@media (max-width: 1100px) {
+  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .trend-grid { grid-template-columns: 1fr 1fr; }
+}
+
 @media (max-width: 900px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .trend-grid { grid-template-columns: 1fr 1fr; }
@@ -357,7 +371,7 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .chart-heading { align-items: flex-start; flex-direction: column; }
   .chart-mode-row { align-items: stretch; flex-direction: column; }
   .chart-mode-row p { text-align: left; }
-  .form-grid, .form-grid.three, .settings-card .form-grid.three { grid-template-columns: 1fr; }
+  .form-grid, .form-grid.three, .settings-card .form-grid.three, .tdee-settings-fields { grid-template-columns: 1fr; }
   .short-field { width: 100%; }
   .bmi-summary-grid { grid-template-columns: 1fr; }
   .body-fat-guide-card .section-heading { align-items: flex-start; flex-direction: column; }

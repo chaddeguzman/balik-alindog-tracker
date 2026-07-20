@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { todayLocal } from '../lib/date'
 import { centimetersFromFeet, fromKilograms, toKilograms, unitRange } from '../lib/units'
-import type { Gender, Unit } from '../types'
+import { TdeeSettingsFields } from './TdeeSettingsFields'
+import type { ActivityLevel, Gender, Unit } from '../types'
 
 interface ProfileInput {
   name: string
@@ -9,6 +10,8 @@ interface ProfileInput {
   heightCm: number
   birthDate: string
   gender: Gender
+  activityLevel: ActivityLevel
+  weeklyLossTargetKg: number
   currentWeightKg: number
   baselineBodyFatPercent?: number
   goalWeightKg: number
@@ -25,6 +28,8 @@ export function ProfileForm({ onSubmit, onCancel }: Props) {
   const [unit, setUnit] = useState<Unit>('kg')
   const [birthDate, setBirthDate] = useState('')
   const [gender, setGender] = useState<Gender | ''>('')
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel | ''>('')
+  const [weeklyLossTargetKg, setWeeklyLossTargetKg] = useState(0.5)
   const [heightCm, setHeightCm] = useState('')
   const [heightFeet, setHeightFeet] = useState('')
   const [heightInches, setHeightInches] = useState('')
@@ -51,6 +56,8 @@ export function ProfileForm({ onSubmit, onCancel }: Props) {
       heightCm: resolvedHeight,
       birthDate,
       gender: gender as Gender,
+      activityLevel: activityLevel as ActivityLevel,
+      weeklyLossTargetKg,
       currentWeightKg: toKilograms(Number(currentWeight), unit),
       baselineBodyFatPercent: baselineBodyFat ? Number(baselineBodyFat) : undefined,
       goalWeightKg: toKilograms(Number(goalWeight), unit),
@@ -129,6 +136,16 @@ export function ProfileForm({ onSubmit, onCancel }: Props) {
           <input type="number" min="2" max="70" step="0.1" value={goalBodyFat} onChange={(event) => setGoalBodyFat(event.target.value)} />
         </label>
       </div>
+      <div className="form-section-heading">
+        <span>4</span>
+        <div><h3>Daily calorie estimate</h3><p>Choose the assumptions used for the adult TDEE estimate.</p></div>
+      </div>
+      <TdeeSettingsFields
+        activityLevel={activityLevel}
+        weeklyLossTargetKg={weeklyLossTargetKg}
+        onActivityLevelChange={setActivityLevel}
+        onWeeklyLossTargetChange={setWeeklyLossTargetKg}
+      />
       <div className="form-actions sticky-actions">
         {onCancel && <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>}
         <button className="button primary" type="submit">Create profile & baseline</button>

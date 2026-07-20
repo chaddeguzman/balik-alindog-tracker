@@ -5,6 +5,17 @@ import App from './App'
 import { addMeasurement, addProfile, createMeasurement, createProfile, initialState, saveState } from './lib/storage'
 import { formatDate, todayLocal } from './lib/date'
 
+function createProfileWithTdee(
+  input: Omit<Parameters<typeof createProfile>[0], 'activityLevel' | 'weeklyLossTargetKg'>
+    & Partial<Pick<Parameters<typeof createProfile>[0], 'activityLevel' | 'weeklyLossTargetKg'>>,
+) {
+  return createProfile({
+    activityLevel: 'moderate',
+    weeklyLossTargetKg: 0.5,
+    ...input,
+  })
+}
+
 describe('Balik Alindog Tracker', () => {
   it('guides a new user through profile setup', () => {
     render(<App />)
@@ -21,6 +32,7 @@ describe('Balik Alindog Tracker', () => {
     await user.type(screen.getByLabelText(/current height \(cm\)/i), '165')
     await user.type(screen.getByLabelText(/current weight \(kg\)/i), '72')
     await user.type(screen.getByLabelText(/target weight \(kg\)/i), '65')
+    await user.selectOptions(screen.getByLabelText(/activity level/i), 'moderate')
     await user.click(screen.getByRole('button', { name: /create profile & baseline/i }))
     expect(await screen.findByRole('heading', { name: /good day, mika/i })).toBeInTheDocument()
     expect(screen.getAllByText('65.0 kg').length).toBeGreaterThanOrEqual(1)
@@ -29,7 +41,7 @@ describe('Balik Alindog Tracker', () => {
   })
 
   it('opens an existing household and keeps the add-person option visible', () => {
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Jamie',
       preferredUnit: 'kg',
       heightCm: 168,
@@ -49,7 +61,7 @@ describe('Balik Alindog Tracker', () => {
 
   it('opens profile details from the greeting name', async () => {
     const user = userEvent.setup()
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Jamie',
       preferredUnit: 'kg',
       heightCm: 168,
@@ -73,7 +85,7 @@ describe('Balik Alindog Tracker', () => {
 
   it('edits profile details from the dashboard', async () => {
     const user = userEvent.setup()
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Jamie',
       preferredUnit: 'kg',
       heightCm: 168,
@@ -97,7 +109,7 @@ describe('Balik Alindog Tracker', () => {
 
   it('enables add entry on a fresh date and disables it after saving today', async () => {
     const user = userEvent.setup()
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Kai',
       preferredUnit: 'kg',
       heightCm: 170,
@@ -125,7 +137,7 @@ describe('Balik Alindog Tracker', () => {
 
   it('edits a saved entry once from history', async () => {
     const user = userEvent.setup()
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Kai',
       preferredUnit: 'kg',
       heightCm: 170,
@@ -152,7 +164,7 @@ describe('Balik Alindog Tracker', () => {
 
   it('only allows editing today and pages history five entries at a time', async () => {
     const user = userEvent.setup()
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Kai',
       preferredUnit: 'kg',
       heightCm: 170,
@@ -182,7 +194,7 @@ describe('Balik Alindog Tracker', () => {
 
   it('shows a sample forecast in the progress chart', async () => {
     const user = userEvent.setup()
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Ria',
       preferredUnit: 'kg',
       heightCm: 165,
@@ -202,7 +214,7 @@ describe('Balik Alindog Tracker', () => {
   })
 
   it('uses month-based actual chart ranges', () => {
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Ria',
       preferredUnit: 'kg',
       heightCm: 165,
@@ -222,7 +234,7 @@ describe('Balik Alindog Tracker', () => {
 
   it('shows adult body-fat guidance and can set the suggested goal', async () => {
     const user = userEvent.setup()
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Ria',
       preferredUnit: 'kg',
       heightCm: 165,
@@ -242,7 +254,7 @@ describe('Balik Alindog Tracker', () => {
 
   it('adds a reusable food from the shared Calorie Tracker tab', async () => {
     const user = userEvent.setup()
-    const existing = createProfile({
+    const existing = createProfileWithTdee({
       name: 'Ria',
       preferredUnit: 'kg',
       heightCm: 165,
@@ -272,5 +284,85 @@ describe('Balik Alindog Tracker', () => {
     expect(screen.getByText('240 kcal')).toBeInTheDocument()
     expect(screen.getByText('150 g')).toBeInTheDocument()
     expect(screen.getByText('Lunch')).toBeInTheDocument()
+  })
+
+  it('shows an adult daily calorie estimate from profile TDEE settings', () => {
+    const existing = createProfileWithTdee({
+      name: 'Alex',
+      preferredUnit: 'kg',
+      heightCm: 175,
+      birthDate: '1990-01-15',
+      gender: 'male',
+      currentWeightKg: 80,
+      goalWeightKg: 70,
+      activityLevel: 'moderate',
+      weeklyLossTargetKg: 0.5,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+
+    expect(screen.getByText(/estimated daily calorie target/i)).toBeInTheDocument()
+    expect(screen.getByText(/moderate.*0\.5 kg\/week/i)).toBeInTheDocument()
+  })
+
+  it('prompts migrated profiles to complete TDEE settings', async () => {
+    const user = userEvent.setup()
+    const existing = createProfileWithTdee({
+      name: 'Jamie',
+      preferredUnit: 'kg',
+      heightCm: 168,
+      birthDate: '1984-03-20',
+      gender: 'male',
+      currentWeightKg: 76,
+      goalWeightKg: 68,
+    })
+    delete existing.activityLevel
+    delete existing.weeklyLossTargetKg
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: /complete tdee settings/i }))
+
+    const dialog = screen.getByRole('dialog', { name: /edit profile/i })
+    expect(within(dialog).getByLabelText(/activity level/i)).toHaveValue('')
+    expect(within(dialog).getByLabelText(/weekly loss target/i)).toHaveValue('0.5')
+  })
+
+  it('does not calculate an adult TDEE target for a younger profile', () => {
+    const existing = createProfileWithTdee({
+      name: 'Young profile',
+      preferredUnit: 'kg',
+      heightCm: 160,
+      birthDate: '2010-01-15',
+      gender: 'female',
+      currentWeightKg: 55,
+      goalWeightKg: 50,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+
+    expect(screen.getByText(/adults 20\+ only/i)).toBeInTheDocument()
+  })
+
+  it('shows a prominent warning without clamping a low positive estimate', () => {
+    const existing = createProfileWithTdee({
+      name: 'Low estimate',
+      preferredUnit: 'kg',
+      heightCm: 165,
+      birthDate: '1990-01-15',
+      gender: 'female',
+      currentWeightKg: 60,
+      goalWeightKg: 55,
+      activityLevel: 'sedentary',
+      weeklyLossTargetKg: 0.9,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/below 1,200 kcal\/day is not advised/i)
+    expect(screen.getByText(/sedentary.*0\.9 kg\/week/i)).toBeInTheDocument()
   })
 })

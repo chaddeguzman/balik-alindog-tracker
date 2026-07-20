@@ -1,5 +1,6 @@
 import { calculateAge, todayLocal } from './date'
 import type {
+  ActivityLevel,
   AppState,
   FoodCategory,
   FoodLibraryEntry,
@@ -15,7 +16,7 @@ export const STORAGE_KEY = 'balik-alindog-tracker:v1'
 export const MAX_PROFILES = 10
 
 export const initialState: AppState = {
-  schemaVersion: 6,
+  schemaVersion: 7,
   theme: 'system',
   activeProfileId: null,
   profiles: [],
@@ -45,12 +46,36 @@ interface VersionFiveAppState extends Omit<AppState, 'schemaVersion' | 'foodLibr
   schemaVersion: 5
 }
 
+interface VersionSixAppState extends Omit<AppState, 'schemaVersion'> {
+  schemaVersion: 6
+}
+
 function isGender(value: unknown): value is Gender {
   return value === 'female' || value === 'male'
 }
 
 function assertGender(value: Gender): void {
   if (!isGender(value)) throw new Error('Gender must be Male or Female.')
+}
+
+function isActivityLevel(value: unknown): value is ActivityLevel {
+  return value === 'sedentary'
+    || value === 'light'
+    || value === 'moderate'
+    || value === 'very-active'
+    || value === 'extra-active'
+}
+
+function assertTdeeSettings(activityLevel: ActivityLevel | undefined, weeklyLossTargetKg: number | undefined): void {
+  if ((activityLevel === undefined) !== (weeklyLossTargetKg === undefined)) {
+    throw new Error('Activity level and weekly loss target must be configured together.')
+  }
+  if (activityLevel === undefined || weeklyLossTargetKg === undefined) return
+  if (!isActivityLevel(activityLevel)) throw new Error('Select a valid activity level.')
+  const allowedTargets = [0.5, 0.6, 0.7, 0.8, 0.9]
+  if (!Number.isFinite(weeklyLossTargetKg) || !allowedTargets.some((target) => Math.abs(target - weeklyLossTargetKg) < 0.001)) {
+    throw new Error('Weekly loss target must be between 0.5 and 0.9 kilograms.')
+  }
 }
 
 function sanitizeProfileGender<T extends { gender?: unknown }>(profile: T): T & { gender?: Gender } {
@@ -129,7 +154,7 @@ function assertFoodLibraryInput(input: {
 
 function migrateLegacyState(state: LegacyAppState): AppState {
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     theme: state.theme,
     activeProfileId: state.activeProfileId,
     profiles: state.profiles.map((profile) => ({
@@ -143,7 +168,7 @@ function migrateLegacyState(state: LegacyAppState): AppState {
 function migrateVersionTwoState(state: VersionTwoAppState): AppState {
   return {
     ...state,
-    schemaVersion: 6,
+    schemaVersion: 7,
     profiles: state.profiles.map(sanitizeProfileGender),
     foodLibrary: [],
   }
@@ -152,7 +177,7 @@ function migrateVersionTwoState(state: VersionTwoAppState): AppState {
 function migrateVersionThreeState(state: VersionThreeAppState): AppState {
   return {
     ...state,
-    schemaVersion: 6,
+    schemaVersion: 7,
     profiles: state.profiles.map(sanitizeProfileGender),
     foodLibrary: [],
   }
@@ -161,7 +186,7 @@ function migrateVersionThreeState(state: VersionThreeAppState): AppState {
 function migrateVersionFourState(state: VersionFourAppState): AppState {
   return {
     ...state,
-    schemaVersion: 6,
+    schemaVersion: 7,
     foodLibrary: [],
   }
 }
@@ -169,8 +194,15 @@ function migrateVersionFourState(state: VersionFourAppState): AppState {
 function migrateVersionFiveState(state: VersionFiveAppState): AppState {
   return {
     ...state,
-    schemaVersion: 6,
+    schemaVersion: 7,
     foodLibrary: [],
+  }
+}
+
+function migrateVersionSixState(state: VersionSixAppState): AppState {
+  return {
+    ...state,
+    schemaVersion: 7,
   }
 }
 
@@ -186,6 +218,7 @@ function validateState(state: AppState): AppState {
     if (profile.birthDate !== undefined) assertBirthDate(profile.birthDate)
     else if (profile.age !== undefined) assertAge(profile.age)
     if (profile.gender !== undefined && !isGender(profile.gender)) throw new Error('Backup contains an invalid gender.')
+    assertTdeeSettings(profile.activityLevel, profile.weeklyLossTargetKg)
     if (!Array.isArray(profile.entries)) throw new Error('Backup contains invalid measurements.')
     const dates = new Set<string>()
     for (const entry of profile.entries) {
@@ -222,14 +255,15 @@ function validateState(state: AppState): AppState {
 
 function parseState(value: unknown): AppState {
   if (!value || typeof value !== 'object') throw new Error('Backup is not valid tracker data.')
-  const candidate = value as AppState | VersionFiveAppState | VersionFourAppState | VersionThreeAppState | VersionTwoAppState | LegacyAppState
+  const candidate = value as AppState | VersionSixAppState | VersionFiveAppState | VersionFourAppState | VersionThreeAppState | VersionTwoAppState | LegacyAppState
   if (!Array.isArray(candidate.profiles)) throw new Error('Backup is not valid tracker data.')
   if (candidate.schemaVersion === 1) return validateState(migrateLegacyState(candidate))
   if (candidate.schemaVersion === 2) return validateState(migrateVersionTwoState(candidate))
   if (candidate.schemaVersion === 3) return validateState(migrateVersionThreeState(candidate))
   if (candidate.schemaVersion === 4) return validateState(migrateVersionFourState(candidate))
   if (candidate.schemaVersion === 5) return validateState(migrateVersionFiveState(candidate))
-  if (candidate.schemaVersion === 6) return validateState(candidate)
+  if (candidate.schemaVersion === 6) return validateState(migrateVersionSixState(candidate))
+  if (candidate.schemaVersion === 7) return validateState(candidate)
   throw new Error('This backup version is not supported.')
 }
 
@@ -268,6 +302,8 @@ export function createProfile(input: {
   heightCm: number
   birthDate: string
   gender: Gender
+  activityLevel: ActivityLevel
+  weeklyLossTargetKg: number
   currentWeightKg: number
   baselineBodyFatPercent?: number
   goalWeightKg: number
@@ -277,6 +313,7 @@ export function createProfile(input: {
   assertHeight(input.heightCm)
   assertBirthDate(input.birthDate)
   assertGender(input.gender)
+  assertTdeeSettings(input.activityLevel, input.weeklyLossTargetKg)
   assertWeight(input.currentWeightKg)
   assertBodyFat(input.baselineBodyFatPercent)
   assertWeight(input.goalWeightKg)
@@ -293,6 +330,8 @@ export function createProfile(input: {
     heightCm: input.heightCm,
     birthDate: input.birthDate,
     gender: input.gender,
+    activityLevel: input.activityLevel,
+    weeklyLossTargetKg: input.weeklyLossTargetKg,
     baselineEntryId: baseline.id,
     goalWeightKg: input.goalWeightKg,
     goalBodyFatPercent: input.goalBodyFatPercent,
@@ -364,12 +403,20 @@ export function completeProfileBaseline(
 export function updateProfileDetails(
   state: AppState,
   profileId: string,
-  input: { name: string; heightCm: number; birthDate: string; gender: Gender },
+  input: {
+    name: string
+    heightCm: number
+    birthDate: string
+    gender: Gender
+    activityLevel: ActivityLevel
+    weeklyLossTargetKg: number
+  },
 ): AppState {
   if (!input.name.trim()) throw new Error('A profile name is required.')
   assertHeight(input.heightCm)
   assertBirthDate(input.birthDate)
   assertGender(input.gender)
+  assertTdeeSettings(input.activityLevel, input.weeklyLossTargetKg)
 
   return {
     ...state,
@@ -382,6 +429,8 @@ export function updateProfileDetails(
             birthDate: input.birthDate,
             age: undefined,
             gender: input.gender,
+            activityLevel: input.activityLevel,
+            weeklyLossTargetKg: input.weeklyLossTargetKg,
           }
         : profile,
     ),

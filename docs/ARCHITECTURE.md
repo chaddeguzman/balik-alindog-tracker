@@ -14,7 +14,7 @@ Versioned AppState
 Browser localStorage
 ```
 
-`AppState.schemaVersion` is the migration boundary. Current data uses schema version six. Older browser data is migrated without discarding profiles or measurements, and versions before six receive an empty shared food library. Future schema changes should follow the same explicit migration approach.
+`AppState.schemaVersion` is the migration boundary. Current data uses schema version seven. Older browser data is migrated without discarding profiles, measurements, or shared foods. Version-six profiles receive no assumed TDEE settings and must configure them explicitly. Future schema changes should follow the same explicit migration approach.
 
 ## Data invariants
 
@@ -29,6 +29,15 @@ Browser localStorage
 - Food-library entries belong to the household, not an individual profile.
 - Food duplicates are allowed after a warning and are identified by normalized food name plus weight in grams.
 - Stored calories describe the stored serving weight and can be scaled proportionally.
+- TDEE activity and weekly-loss settings are profile-specific and must be configured together.
+
+## Adult calorie-target estimate
+
+Profiles age 20 and older can receive a static daily calorie-target estimate. Resting calories use the Mifflin-St Jeor equation, maintenance calories multiply that result by the selected activity factor, and the selected weekly loss is converted with an approximate 7,700 kcal per kilogram deficit.
+
+The calculation is unavailable for incomplete profiles, BMI below 18.5, current weight at or below goal, and zero or negative results. Positive estimates below 1,200 kcal/day are displayed only with a prominent warning. The result is an estimate rather than a prescription and is recalculated from the latest saved weight.
+
+Calculation and safety references: [Mifflin-St Jeor evidence review](https://pubmed.ncbi.nlm.nih.gov/15883556/), [CDC gradual weight-loss guidance](https://www.cdc.gov/healthy-weight-growth/losing-weight/index.html), and [NIDDK calorie guidance](https://www.niddk.nih.gov/health-information/diabetes/overview/preventing-type-2-diabetes/game-plan).
 
 ## BMI guidance
 
@@ -48,7 +57,7 @@ SuggestionService
 └── GeminiSuggestionProvider
 ```
 
-The health chat sends a deliberately limited context object: active-profile details, goals, latest values, that profile's measurement history, and the shared household food library. It does not send other household profiles or raw backup data. Food-library context is labeled as reusable reference data rather than a record of consumption, and each entry includes a calories-per-gram value for proportional serving calculations.
+The health chat sends a deliberately limited context object: active-profile details, goals, latest values, that profile's measurement history, eligible TDEE estimate status, and the shared household food library. It does not send other household profiles or raw backup data. Food-library context is labeled as reusable reference data rather than a record of consumption, and each entry includes a calories-per-gram value for proportional serving calculations. TDEE values are labeled as static estimates, and unavailable or below-minimum results cannot be treated as safe food budgets.
 
 The browser build reads `HEALTH_API` into the `HEALTH_API` constant used by `health_track_api.js`, with `VITE_HEALTH_API` kept as a local-development fallback. Because the value is embedded in the public browser bundle, this is configuration rather than a true secret. Missing configuration disables live chat responses gracefully. A future version that needs a protected shared key should use a server-side proxy with authentication and rate limits.
 

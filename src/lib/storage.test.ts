@@ -25,6 +25,8 @@ function profileInput(name = 'Alex') {
     heightCm: 170,
     birthDate: '1990-01-15',
     gender: 'male' as const,
+    activityLevel: 'moderate' as const,
+    weeklyLossTargetKg: 0.5,
     currentWeightKg: 80,
     baselineBodyFatPercent: 25,
     goalWeightKg: 70,
@@ -84,11 +86,15 @@ describe('tracker data rules', () => {
       heightCm: 166,
       birthDate: '1991-02-20',
       gender: 'female',
+      activityLevel: 'light',
+      weeklyLossTargetKg: 0.6,
     })
 
     expect(updated.profiles[0].name).toBe('Mika D')
     expect(updated.profiles[0].heightCm).toBe(166)
     expect(updated.profiles[0].birthDate).toBe('1991-02-20')
+    expect(updated.profiles[0].activityLevel).toBe('light')
+    expect(updated.profiles[0].weeklyLossTargetKg).toBe(0.6)
     expect(updated.profiles[0].entries).toEqual(profile.entries)
   })
 
@@ -108,7 +114,7 @@ describe('tracker data rules', () => {
     }))
 
     const migrated = loadState()
-    expect(migrated.schemaVersion).toBe(6)
+    expect(migrated.schemaVersion).toBe(7)
     expect(migrated.foodLibrary).toEqual([])
     expect(migrated.profiles[0].name).toBe('Existing person')
     expect(migrated.profiles[0].entries[0].weightKg).toBe(80)
@@ -128,7 +134,7 @@ describe('tracker data rules', () => {
     }))
 
     const migrated = loadState()
-    expect(migrated.schemaVersion).toBe(6)
+    expect(migrated.schemaVersion).toBe(7)
     expect(migrated.profiles[0].name).toBe('Legacy person')
     expect(migrated.profiles[0].gender).toBeUndefined()
   })
@@ -197,8 +203,47 @@ describe('tracker data rules', () => {
 
     const restored = restoreStateFromBackup(JSON.stringify({ data: state }))
 
-    expect(restored.schemaVersion).toBe(6)
+    expect(restored.schemaVersion).toBe(7)
     expect(restored.profiles[0].name).toBe('Mika')
     expect(restored.foodLibrary[0]).toMatchObject({ food: 'Protein Shake', category: 'supplement' })
+  })
+
+  it('migrates version-six data without losing profiles or shared foods', () => {
+    const profile = createProfile(profileInput('Version Six'))
+    const versionSixProfile = { ...profile }
+    delete versionSixProfile.activityLevel
+    delete versionSixProfile.weeklyLossTargetKg
+    const food = createFoodLibraryEntry({
+      food: 'Brown Rice',
+      category: 'food',
+      calories: 216,
+      weightGrams: 200,
+      mealType: 'flexible',
+    })
+
+    const restored = restoreStateFromBackup(JSON.stringify({
+      data: {
+        schemaVersion: 6,
+        theme: 'system',
+        activeProfileId: profile.id,
+        profiles: [versionSixProfile],
+        foodLibrary: [food],
+      },
+    }))
+
+    expect(restored.schemaVersion).toBe(7)
+    expect(restored.profiles[0].name).toBe('Version Six')
+    expect(restored.profiles[0].activityLevel).toBeUndefined()
+    expect(restored.profiles[0].weeklyLossTargetKg).toBeUndefined()
+    expect(restored.foodLibrary[0].food).toBe('Brown Rice')
+  })
+
+  it('rejects backups with only one TDEE setting', () => {
+    const profile = createProfile(profileInput('Partial'))
+    const partialProfile = { ...profile, weeklyLossTargetKg: undefined }
+
+    expect(() => restoreStateFromBackup(JSON.stringify({
+      data: { ...initialState, profiles: [partialProfile], activeProfileId: partialProfile.id },
+    }))).toThrow(/configured together/i)
   })
 })

@@ -340,7 +340,21 @@ function HealthChat({ profile }: { profile: Profile }) {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key !== 'Enter' || event.altKey || event.shiftKey || event.ctrlKey || event.metaKey) return
+              if (event.key !== 'Enter') return
+              if (event.altKey) {
+                event.preventDefault()
+                const field = event.currentTarget
+                const start = field.selectionStart
+                const end = field.selectionEnd
+                const next = `${input.slice(0, start)}\n${input.slice(end)}`
+                setInput(next)
+                window.requestAnimationFrame(() => {
+                  field.selectionStart = start + 1
+                  field.selectionEnd = start + 1
+                })
+                return
+              }
+              if (event.shiftKey || event.ctrlKey || event.metaKey) return
               event.preventDefault()
               event.currentTarget.form?.requestSubmit()
             }}

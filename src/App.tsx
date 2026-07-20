@@ -494,7 +494,9 @@ function BodyFatGuideCard({ profile, onSelectTarget }: { profile: Profile; onSel
       </div>
       <p className="body-fat-copy">
         This is a screening guide, not a diagnosis. Body-fat estimates from BMI can be inaccurate for athletes, very muscular people, pregnancy, medical conditions, or unusual hydration status.
-        {' '}<a href="https://inbodyusa.com/blogs/inbodyblog/body-fat-percentage-chart/" target="_blank" rel="noreferrer">Source: InBody body-fat percentage chart</a>.
+        <span className="guide-source">
+          Source: <a href="https://inbodyusa.com/blogs/inbodyblog/body-fat-percentage-chart/" target="_blank" rel="noreferrer">https://inbodyusa.com/blogs/inbodyblog/body-fat-percentage-chart/</a>
+        </span>
       </p>
     </section>
   )
@@ -836,7 +838,7 @@ export default function App() {
             aria-controls="overview-panel"
             onClick={() => setActiveTab('overview')}
           >
-            Overview
+            Dashboard
           </button>
           <button
             id="calorie-tracker-tab"

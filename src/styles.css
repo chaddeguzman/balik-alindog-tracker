@@ -261,6 +261,8 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .bmi-target-actions button { min-height: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--primary); font-size: 0.72rem; font-weight: 800; }
 .bmi-disclaimer { margin: 16px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
 .bmi-disclaimer a { color: var(--primary); font-weight: 800; text-underline-offset: 3px; }
+.guide-source { display: block; max-width: 100%; margin-top: 7px; padding-bottom: 3px; overflow-x: auto; white-space: nowrap; }
+.guide-source a { color: var(--primary); font-weight: 800; text-underline-offset: 3px; }
 .incomplete-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; background: linear-gradient(135deg, var(--surface), var(--primary-soft)); }
 .incomplete-card p:last-child { max-width: 650px; margin: 7px 0 0; color: var(--muted); }
 .child-bmi-notice { margin-bottom: 0; }
@@ -275,7 +277,6 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .body-fat-grid strong { font-size: 1.05rem; }
 .body-fat-grid button { width: fit-content; min-height: 30px; margin-top: 4px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--primary); font-size: 0.72rem; font-weight: 800; }
 .body-fat-copy { margin: 14px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
-.body-fat-copy a { color: var(--primary); font-weight: 800; text-underline-offset: 3px; }
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: rgba(12, 28, 19, 0.55); backdrop-filter: blur(5px); }
 .modal { width: min(520px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; padding: 25px; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.2); }

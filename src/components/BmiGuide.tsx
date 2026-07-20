@@ -50,7 +50,9 @@ export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: 
         </div>
         <p className="bmi-disclaimer">
           BMI is a screening measure, not a diagnosis.
-          {' '}<a href="https://www.calculator.net/bmi-calculator.html" target="_blank" rel="noreferrer">Source: Calculator.net BMI calculator</a>.
+          <span className="guide-source">
+            Source: <a href="https://www.calculator.net/bmi-calculator.html" target="_blank" rel="noreferrer">https://www.calculator.net/bmi-calculator.html</a>
+          </span>
         </p>
       </section>
     )
@@ -100,7 +102,9 @@ export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: 
       </div>
       <p className="bmi-disclaimer">
         Adult BMI is a screening measure, not a diagnosis or personalized medical target. Consider health history, body composition, and professional advice when choosing a goal.
-        {' '}<a href="https://www.calculator.net/bmi-calculator.html" target="_blank" rel="noreferrer">Source: Calculator.net BMI calculator</a>.
+        <span className="guide-source">
+          Source: <a href="https://www.calculator.net/bmi-calculator.html" target="_blank" rel="noreferrer">https://www.calculator.net/bmi-calculator.html</a>
+        </span>
       </p>
     </section>
   )

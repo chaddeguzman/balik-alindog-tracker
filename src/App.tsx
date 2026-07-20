@@ -278,8 +278,8 @@ function HealthChat({ profile }: { profile: Profile }) {
     if (messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight
   }, [messages, open])
 
-  async function submit(event: FormEvent) {
-    event.preventDefault()
+  async function submit(event?: FormEvent) {
+    event?.preventDefault()
     const userText = input.trim()
     if (!userText || sending) return
 
@@ -311,7 +311,8 @@ function HealthChat({ profile }: { profile: Profile }) {
   return (
     <aside className={`health-chat ${open ? 'is-open' : ''}`} aria-label="Health chat assistant">
       <button className="health-chat-toggle" type="button" aria-expanded={open} aria-controls="health-chat-panel" onClick={() => setOpen((value) => !value)}>
-        Chat
+        <span aria-hidden="true">♥</span>
+        <span className="sr-only">Open health chat</span>
       </button>
       <section id="health-chat-panel" className="health-chat-panel" hidden={!open}>
         <div className="health-chat-header">
@@ -319,7 +320,7 @@ function HealthChat({ profile }: { profile: Profile }) {
             <p className="eyebrow">Health chat</p>
             <h2>Wellness coach</h2>
           </div>
-          <button className="icon-button" type="button" aria-label="Close health chat" onClick={() => setOpen(false)}>Ã—</button>
+          <button className="icon-button" type="button" aria-label="Close health chat" onClick={() => setOpen(false)}>×</button>
         </div>
         <p className="health-chat-disclaimer">
           Not medical advice. Messages may include {profile.name}'s tracker history for context.
@@ -338,6 +339,11 @@ function HealthChat({ profile }: { profile: Profile }) {
             id="health-chat-input"
             value={input}
             onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' || event.altKey || event.shiftKey || event.ctrlKey || event.metaKey) return
+              event.preventDefault()
+              event.currentTarget.form?.requestSubmit()
+            }}
             placeholder="Ask about your progress..."
             rows={2}
             disabled={sending}

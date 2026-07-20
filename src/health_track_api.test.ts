@@ -50,6 +50,7 @@ describe('health chat API helpers', () => {
     expect(prompt).toContain('You are not a medical provider')
     expect(prompt).toContain('Do not diagnose')
     expect(prompt).toContain('unsafe weight-loss plans')
+    expect(prompt).toContain('Keep answers to 2-3 sentences by default')
     expect(prompt).toContain('<active_profile_context>')
   })
 

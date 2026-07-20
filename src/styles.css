@@ -256,12 +256,12 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .toast { position: fixed; right: 24px; bottom: 24px; z-index: 150; max-width: min(380px, calc(100% - 48px)); padding: 13px 18px; border-radius: 12px; background: var(--text); color: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
 
 .health-chat { position: fixed; right: 24px; bottom: 24px; z-index: 120; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
-.health-chat-toggle { position: relative; width: 35px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px 7px 5px 7px; background: var(--primary); color: #fff; box-shadow: 0 12px 30px color-mix(in srgb, var(--primary) 28%, transparent); font-size: 1.75rem; font-weight: 800; transform: rotate(-45deg); transition: transform 160ms ease, background 160ms ease; }
+.health-chat-toggle { position: relative; width: 35px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px 7px 5px 7px; background: var(--primary); color: #fff; box-shadow: 0 12px 30px color-mix(in srgb, var(--primary) 28%, transparent); font-size: 2rem; font-weight: 800; transform: rotate(-45deg); transition: transform 160ms ease, background 160ms ease; }
 .health-chat-toggle::before, .health-chat-toggle::after { content: ''; position: absolute; width: 35px; height: 32px; border-radius: 50%; background: inherit; }
 .health-chat-toggle::before { top: -16px; left: 0; }
 .health-chat-toggle::after { top: 0; left: 16px; }
 .health-chat-toggle:hover { background: var(--primary-dark); transform: rotate(-45deg) translateY(-2px); }
-.health-chat-toggle span:not(.sr-only) { position: relative; z-index: 1; transform: rotate(45deg); line-height: 1; }
+.health-chat-toggle span:not(.sr-only) { position: relative; z-index: 1; animation: health-heart-beat 1.15s ease-in-out infinite; line-height: 1; }
 .health-chat-panel { width: min(390px, calc(100vw - 32px)); max-height: min(620px, calc(100vh - 110px)); display: flex; flex-direction: column; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: 0 24px 70px rgba(0,0,0,.18); }
 .health-chat-panel[hidden] { display: none; }
 .health-chat-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
@@ -273,8 +273,20 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .health-chat-message.user-message { align-self: flex-end; background: var(--primary); color: #fff; }
 .health-chat-message.is-error { border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); background: var(--danger-soft); }
 .health-chat-message.is-loading { color: var(--muted); }
+.health-chat-markdown p, .health-chat-markdown ul, .health-chat-markdown h3, .health-chat-markdown h4 { margin: 0; }
+.health-chat-markdown p + p, .health-chat-markdown p + ul, .health-chat-markdown ul + p, .health-chat-markdown h3 + p, .health-chat-markdown h4 + p { margin-top: 8px; }
+.health-chat-markdown ul { padding-left: 18px; }
+.health-chat-markdown a { color: var(--primary); font-weight: 800; text-underline-offset: 3px; }
 .health-chat-form { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 9px; padding-top: 10px; border-top: 1px solid var(--border); }
 .health-chat-form textarea { margin-top: 0; max-height: 120px; }
+
+@keyframes health-heart-beat {
+  0%, 100% { transform: rotate(45deg) scale(0.78); }
+  18% { transform: rotate(45deg) scale(1.16); }
+  34% { transform: rotate(45deg) scale(0.9); }
+  52% { transform: rotate(45deg) scale(1.08); }
+  70% { transform: rotate(45deg) scale(0.84); }
+}
 
 .onboarding-shell { min-height: 100vh; padding: 50px 20px; display: grid; place-items: center; background: radial-gradient(circle at top left, var(--primary-soft), transparent 42%), var(--bg); }
 .onboarding-card { width: min(660px, 100%); padding: clamp(28px, 6vw, 58px); background: var(--surface); border: 1px solid var(--border); border-radius: 28px; box-shadow: var(--shadow); }
@@ -345,5 +357,5 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
 }

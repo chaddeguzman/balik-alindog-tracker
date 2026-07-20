@@ -260,6 +260,76 @@ interface HealthChatMessage {
   isError?: boolean
 }
 
+function renderInlineMarkdown(text: string, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = []
+  const tokenPattern = /(\*\*[^*]+\*\*|\+\+[^+]+\+\+|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^)\s]+\))/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = tokenPattern.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index))
+    const token = match[0]
+    const key = `${keyPrefix}-${match.index}`
+
+    if (token.startsWith('**')) nodes.push(<strong key={key}>{token.slice(2, -2)}</strong>)
+    else if (token.startsWith('++')) nodes.push(<u key={key}>{token.slice(2, -2)}</u>)
+    else if (token.startsWith('*')) nodes.push(<em key={key}>{token.slice(1, -1)}</em>)
+    else {
+      const link = token.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/)
+      nodes.push(link ? <a key={key} href={link[2]} target="_blank" rel="noreferrer">{link[1]}</a> : token)
+    }
+
+    lastIndex = match.index + token.length
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
+  return nodes
+}
+
+function renderHealthChatMarkdown(text: string): ReactNode {
+  const lines = text.split(/\r?\n/)
+  const blocks: ReactNode[] = []
+  let listItems: string[] = []
+
+  function flushList() {
+    if (!listItems.length) return
+    const items = listItems
+    listItems = []
+    blocks.push(
+      <ul key={`list-${blocks.length}`}>
+        {items.map((item, index) => <li key={index}>{renderInlineMarkdown(item, `li-${blocks.length}-${index}`)}</li>)}
+      </ul>,
+    )
+  }
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      flushList()
+      return
+    }
+
+    const listItem = trimmed.match(/^[-*]\s+(.+)$/)
+    if (listItem) {
+      listItems.push(listItem[1])
+      return
+    }
+
+    flushList()
+    const heading = trimmed.match(/^(#{1,3})\s+(.+)$/)
+    if (heading) {
+      const HeadingTag = `h${Math.min(heading[1].length + 2, 4)}` as 'h3' | 'h4'
+      blocks.push(<HeadingTag key={`heading-${index}`}>{renderInlineMarkdown(heading[2], `heading-${index}`)}</HeadingTag>)
+      return
+    }
+
+    blocks.push(<p key={`paragraph-${index}`}>{renderInlineMarkdown(trimmed, `paragraph-${index}`)}</p>)
+  })
+
+  flushList()
+  return <div className="health-chat-markdown">{blocks}</div>
+}
+
 function HealthChat({ profile }: { profile: Profile }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -328,7 +398,7 @@ function HealthChat({ profile }: { profile: Profile }) {
         <div ref={messagesRef} className="health-chat-messages" aria-live="polite" aria-busy={sending}>
           {messages.map((message) => (
             <div key={message.id} className={`health-chat-message ${message.role === 'user' ? 'user-message' : 'assistant-message'} ${message.isError ? 'is-error' : ''}`}>
-              {message.text}
+              {message.role === 'assistant' ? renderHealthChatMarkdown(message.text) : message.text}
             </div>
           ))}
           {sending && <div className="health-chat-message assistant-message is-loading">Thinking...</div>}

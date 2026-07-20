@@ -14,7 +14,7 @@ Versioned AppState
 Browser localStorage
 ```
 
-`AppState.schemaVersion` is the migration boundary. Current data uses schema version four. Older browser data is migrated without discarding profiles or measurements; migrated profiles are invited to complete missing baseline demographics. Version-four migration also clears unsupported legacy gender values so current data only stores Male or Female. Future schema changes should follow the same explicit migration approach.
+`AppState.schemaVersion` is the migration boundary. Current data uses schema version six. Older browser data is migrated without discarding profiles or measurements, and versions before six receive an empty shared food library. Future schema changes should follow the same explicit migration approach.
 
 ## Data invariants
 
@@ -26,6 +26,9 @@ Browser localStorage
 - Weight is stored in kilograms; pounds are a presentation conversion.
 - Entries are sorted by their measurement date, not their save timestamp.
 - Goals and display preferences are mutable profile settings, not measurements.
+- Food-library entries belong to the household, not an individual profile.
+- Food duplicates are allowed after a warning and are identified by normalized food name plus weight in grams.
+- Stored calories describe the stored serving weight and can be scaled proportionally.
 
 ## BMI guidance
 
@@ -45,7 +48,7 @@ SuggestionService
 └── GeminiSuggestionProvider
 ```
 
-The health chat sends a deliberately limited context object for the active profile only: profile details, goals, latest values, and that profile's measurement history. It does not send other household profiles or raw backup data.
+The health chat sends a deliberately limited context object: active-profile details, goals, latest values, that profile's measurement history, and the shared household food library. It does not send other household profiles or raw backup data. Food-library context is labeled as reusable reference data rather than a record of consumption, and each entry includes a calories-per-gram value for proportional serving calculations.
 
 The browser build reads `HEALTH_API` into the `HEALTH_API` constant used by `health_track_api.js`, with `VITE_HEALTH_API` kept as a local-development fallback. Because the value is embedded in the public browser bundle, this is configuration rather than a true secret. Missing configuration disables live chat responses gracefully. A future version that needs a protected shared key should use a server-side proxy with authentication and rate limits.
 

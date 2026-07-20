@@ -1,8 +1,6 @@
 # Balik Alindog Tracker
 
-A private, browser-based tracker for daily weight and body-fat progress. It supports up to 10 shared profiles, kilograms and pounds, goals, accessible SVG charts, light/dark themes, and CSV/JSON export.
-
-The first release intentionally has no AI integration. Meal and activity suggestions will later use a separate provider boundary for local models or Gemini.
+A private, browser-based tracker for daily weight and body-fat progress. It supports up to 10 shared profiles, kilograms and pounds, goals, a shared food library, Gemini-powered health chat, accessible SVG charts, light/dark themes, and CSV/JSON export.
 
 ## Features
 
@@ -15,6 +13,8 @@ The first release intentionally has no AI integration. Meal and activity suggest
 - Adult BMI chart with categories, target BMI, and a height-based general healthy-weight range
 - Growth-aware messaging for children and teens instead of applying adult BMI targets
 - Up to 10 browser-local profiles without accounts
+- Shared household food library with calories, serving weight, category, meal type, and remarks
+- Gemini-powered wellness chat that can use the active profile and shared food library as context
 - Light, dark, and system themes
 - Per-profile CSV export plus complete Backup and Upload restore
 - Responsive, keyboard-friendly interface
@@ -49,11 +49,11 @@ The production files are generated in `dist/`. To inspect them locally, run `npm
 
 All application data is saved under the current site's `localStorage`. It does not leave the browser. Data is therefore specific to the browser, device, and site address used to open the app. Clearing site data can erase it, so users should periodically select **Backup**.
 
-Measurements cannot be edited or deleted in the interface. Before saving, the app presents a permanent-save confirmation. Profile goals and preferred units remain adjustable.
+Only today's measurement can be edited, and it can be edited once. Older measurements remain locked. Shared food-library entries can be added, edited, and deleted.
 
 BMI is presented as a general screening guide, not a diagnosis or personalized medical recommendation. Adult categories and the height-based range are shown only for people age 20 or older. Profiles age 2–19 are directed toward age- and sex-specific professional guidance.
 
-Backups can be uploaded into another browser or workstation. Restoring a backup replaces the household data stored in that browser.
+Backups include profiles, measurements, settings, and the shared food library. They can be uploaded into another browser or workstation; restoring a backup replaces the household data stored in that browser.
 
 ## Deployment
 

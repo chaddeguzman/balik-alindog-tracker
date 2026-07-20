@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { todayLocal } from './date'
 import {
+  addFoodLibraryEntry,
   addMeasurement,
   addProfile,
+  createFoodLibraryEntry,
   createMeasurement,
   createProfile,
+  deleteFoodLibraryEntry,
+  findDuplicateFoodEntry,
   initialState,
   loadState,
+  restoreStateFromBackup,
   saveState,
+  updateFoodLibraryEntry,
   updateMeasurement,
   updateProfileDetails,
 } from './storage'
@@ -102,7 +108,8 @@ describe('tracker data rules', () => {
     }))
 
     const migrated = loadState()
-    expect(migrated.schemaVersion).toBe(5)
+    expect(migrated.schemaVersion).toBe(6)
+    expect(migrated.foodLibrary).toEqual([])
     expect(migrated.profiles[0].name).toBe('Existing person')
     expect(migrated.profiles[0].entries[0].weightKg).toBe(80)
     expect(migrated.profiles[0].baselineEntryId).toBe('legacy-entry')
@@ -121,8 +128,77 @@ describe('tracker data rules', () => {
     }))
 
     const migrated = loadState()
-    expect(migrated.schemaVersion).toBe(5)
+    expect(migrated.schemaVersion).toBe(6)
     expect(migrated.profiles[0].name).toBe('Legacy person')
     expect(migrated.profiles[0].gender).toBeUndefined()
+  })
+
+  it('creates, updates, and deletes shared food-library entries', () => {
+    const entry = createFoodLibraryEntry({
+      food: '  Chicken   Adobo ',
+      category: 'food',
+      calories: 240,
+      weightGrams: 150,
+      mealType: 'lunch',
+      remarks: '  Household recipe  ',
+    })
+    const added = addFoodLibraryEntry(initialState, entry)
+
+    expect(added.foodLibrary[0]).toMatchObject({
+      food: 'Chicken Adobo',
+      calories: 240,
+      weightGrams: 150,
+      remarks: 'Household recipe',
+    })
+
+    const updated = updateFoodLibraryEntry(added, entry.id, {
+      food: 'Chicken Adobo',
+      category: 'food',
+      calories: 260,
+      weightGrams: 150,
+      mealType: 'dinner',
+      remarks: 'With rice',
+    })
+    expect(updated.foodLibrary[0]).toMatchObject({ calories: 260, mealType: 'dinner', updatedAt: expect.any(String) })
+    expect(deleteFoodLibraryEntry(updated, entry.id).foodLibrary).toEqual([])
+  })
+
+  it('detects duplicate food names and weights without blocking storage', () => {
+    const entry = createFoodLibraryEntry({
+      food: 'Greek Yogurt',
+      category: 'food',
+      calories: 120,
+      weightGrams: 100,
+      mealType: 'breakfast',
+    })
+    const state = addFoodLibraryEntry(initialState, entry)
+
+    expect(findDuplicateFoodEntry(state.foodLibrary, { food: ' greek   yogurt ', weightGrams: 100 })).toBe(entry)
+    expect(findDuplicateFoodEntry(state.foodLibrary, { food: 'Greek Yogurt', weightGrams: 150 })).toBeUndefined()
+    expect(addFoodLibraryEntry(state, createFoodLibraryEntry({
+      food: 'Greek Yogurt',
+      category: 'food',
+      calories: 130,
+      weightGrams: 100,
+      mealType: 'snack',
+    })).foodLibrary).toHaveLength(2)
+  })
+
+  it('restores the shared food library from a household backup', () => {
+    const profile = createProfile(profileInput('Mika'))
+    const state = addFoodLibraryEntry(addProfile(initialState, profile), createFoodLibraryEntry({
+      food: 'Protein Shake',
+      category: 'supplement',
+      calories: 180,
+      weightGrams: 300,
+      mealType: 'flexible',
+      remarks: 'After workouts',
+    }))
+
+    const restored = restoreStateFromBackup(JSON.stringify({ data: state }))
+
+    expect(restored.schemaVersion).toBe(6)
+    expect(restored.profiles[0].name).toBe('Mika')
+    expect(restored.foodLibrary[0]).toMatchObject({ food: 'Protein Shake', category: 'supplement' })
   })
 })

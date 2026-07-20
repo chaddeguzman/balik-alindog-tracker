@@ -239,4 +239,38 @@ describe('Balik Alindog Tracker', () => {
     await user.click(screen.getByRole('button', { name: /use goal/i }))
     expect(await screen.findByText(/target body-fat goal updated/i)).toBeInTheDocument()
   })
+
+  it('adds a reusable food from the shared Calorie Tracker tab', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Ria',
+      preferredUnit: 'kg',
+      heightCm: 165,
+      birthDate: '1992-05-10',
+      gender: 'female',
+      currentWeightKg: 80,
+      goalWeightKg: 68,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    await user.click(screen.getByRole('tab', { name: /calorie tracker/i }))
+    expect(screen.getByRole('heading', { name: /calorie tracker/i })).toBeInTheDocument()
+    expect(screen.getByText(/shared household library/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /^add food$/i }))
+    const dialog = screen.getByRole('dialog', { name: /add food/i })
+    await user.type(within(dialog).getByLabelText(/^food$/i), 'Chicken Adobo')
+    await user.selectOptions(within(dialog).getByLabelText(/category/i), 'food')
+    await user.type(within(dialog).getByLabelText(/^calorie$/i), '240')
+    await user.type(within(dialog).getByLabelText(/weight \(grams\)/i), '150')
+    await user.selectOptions(within(dialog).getByLabelText(/meal type/i), 'lunch')
+    await user.type(within(dialog).getByLabelText(/remarks/i), 'Household recipe')
+    await user.click(within(dialog).getByRole('button', { name: /^add food$/i }))
+
+    expect(await screen.findByText('Chicken Adobo')).toBeInTheDocument()
+    expect(screen.getByText('240 kcal')).toBeInTheDocument()
+    expect(screen.getByText('150 g')).toBeInTheDocument()
+    expect(screen.getByText('Lunch')).toBeInTheDocument()
+  })
 })

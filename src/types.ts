@@ -1,6 +1,8 @@
 export type Unit = 'kg' | 'lb'
 export type Theme = 'light' | 'dark' | 'system'
 export type Gender = 'female' | 'male'
+export type FoodCategory = 'food' | 'drinks' | 'supplement'
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'flexible'
 
 export interface Measurement {
   id: string
@@ -27,9 +29,22 @@ export interface Profile {
   entries: Measurement[]
 }
 
+export interface FoodLibraryEntry {
+  id: string
+  food: string
+  category: FoodCategory
+  calories: number
+  weightGrams: number
+  mealType: MealType
+  remarks: string
+  createdAt: string
+  updatedAt?: string
+}
+
 export interface AppState {
-  schemaVersion: 5
+  schemaVersion: 6
   theme: Theme
   activeProfileId: string | null
   profiles: Profile[]
+  foodLibrary: FoodLibraryEntry[]
 }

@@ -1,14 +1,25 @@
 import { calculateAge, todayLocal } from './date'
-import type { AppState, Gender, Measurement, Profile, Theme, Unit } from '../types'
+import type {
+  AppState,
+  FoodCategory,
+  FoodLibraryEntry,
+  Gender,
+  MealType,
+  Measurement,
+  Profile,
+  Theme,
+  Unit,
+} from '../types'
 
 export const STORAGE_KEY = 'balik-alindog-tracker:v1'
 export const MAX_PROFILES = 10
 
 export const initialState: AppState = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   theme: 'system',
   activeProfileId: null,
   profiles: [],
+  foodLibrary: [],
 }
 
 interface LegacyAppState {
@@ -18,16 +29,20 @@ interface LegacyAppState {
   profiles: Array<Omit<Profile, 'heightCm' | 'age' | 'gender' | 'baselineEntryId'>>
 }
 
-interface VersionTwoAppState extends Omit<AppState, 'schemaVersion'> {
+interface VersionTwoAppState extends Omit<AppState, 'schemaVersion' | 'foodLibrary'> {
   schemaVersion: 2
 }
 
-interface VersionThreeAppState extends Omit<AppState, 'schemaVersion'> {
+interface VersionThreeAppState extends Omit<AppState, 'schemaVersion' | 'foodLibrary'> {
   schemaVersion: 3
 }
 
-interface VersionFourAppState extends Omit<AppState, 'schemaVersion'> {
+interface VersionFourAppState extends Omit<AppState, 'schemaVersion' | 'foodLibrary'> {
   schemaVersion: 4
+}
+
+interface VersionFiveAppState extends Omit<AppState, 'schemaVersion' | 'foodLibrary'> {
+  schemaVersion: 5
 }
 
 function isGender(value: unknown): value is Gender {
@@ -82,38 +97,80 @@ function assertBirthDate(birthDate: string): void {
   }
 }
 
+function isFoodCategory(value: unknown): value is FoodCategory {
+  return value === 'food' || value === 'drinks' || value === 'supplement'
+}
+
+function isMealType(value: unknown): value is MealType {
+  return value === 'breakfast' || value === 'lunch' || value === 'dinner' || value === 'snack' || value === 'flexible'
+}
+
+function assertFoodLibraryInput(input: {
+  food: string
+  category: FoodCategory
+  calories: number
+  weightGrams: number
+  mealType: MealType
+  remarks: string
+}): void {
+  if (!input.food.trim() || input.food.trim().length > 100) {
+    throw new Error('Food must be between 1 and 100 characters.')
+  }
+  if (!isFoodCategory(input.category)) throw new Error('Select a valid food category.')
+  if (!Number.isFinite(input.calories) || input.calories < 0 || input.calories > 100_000) {
+    throw new Error('Calories must be between 0 and 100,000.')
+  }
+  if (!Number.isFinite(input.weightGrams) || input.weightGrams <= 0 || input.weightGrams > 100_000) {
+    throw new Error('Weight must be greater than 0 and no more than 100,000 grams.')
+  }
+  if (!isMealType(input.mealType)) throw new Error('Select a valid meal type.')
+  if (input.remarks.length > 500) throw new Error('Remarks cannot exceed 500 characters.')
+}
+
 function migrateLegacyState(state: LegacyAppState): AppState {
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     theme: state.theme,
     activeProfileId: state.activeProfileId,
     profiles: state.profiles.map((profile) => ({
       ...profile,
       baselineEntryId: profile.entries[0]?.id,
     })),
+    foodLibrary: [],
   }
 }
 
 function migrateVersionTwoState(state: VersionTwoAppState): AppState {
   return {
     ...state,
-    schemaVersion: 5,
+    schemaVersion: 6,
     profiles: state.profiles.map(sanitizeProfileGender),
+    foodLibrary: [],
   }
 }
 
 function migrateVersionThreeState(state: VersionThreeAppState): AppState {
   return {
     ...state,
-    schemaVersion: 5,
+    schemaVersion: 6,
     profiles: state.profiles.map(sanitizeProfileGender),
+    foodLibrary: [],
   }
 }
 
 function migrateVersionFourState(state: VersionFourAppState): AppState {
   return {
     ...state,
-    schemaVersion: 5,
+    schemaVersion: 6,
+    foodLibrary: [],
+  }
+}
+
+function migrateVersionFiveState(state: VersionFiveAppState): AppState {
+  return {
+    ...state,
+    schemaVersion: 6,
+    foodLibrary: [],
   }
 }
 
@@ -140,6 +197,23 @@ function validateState(state: AppState): AppState {
       dates.add(entry.date)
     }
   }
+  if (!Array.isArray(state.foodLibrary)) throw new Error('Backup contains an invalid food library.')
+  const foodIds = new Set<string>()
+  for (const entry of state.foodLibrary) {
+    if (
+      !entry
+      || typeof entry.id !== 'string'
+      || typeof entry.food !== 'string'
+      || typeof entry.remarks !== 'string'
+      || typeof entry.createdAt !== 'string'
+      || (entry.updatedAt !== undefined && typeof entry.updatedAt !== 'string')
+    ) {
+      throw new Error('Backup contains an invalid food entry.')
+    }
+    assertFoodLibraryInput(entry)
+    if (foodIds.has(entry.id)) throw new Error('Backup contains duplicate food entry IDs.')
+    foodIds.add(entry.id)
+  }
   if (state.activeProfileId !== null && !state.profiles.some((profile) => profile.id === state.activeProfileId)) {
     state.activeProfileId = state.profiles[0]?.id ?? null
   }
@@ -148,13 +222,14 @@ function validateState(state: AppState): AppState {
 
 function parseState(value: unknown): AppState {
   if (!value || typeof value !== 'object') throw new Error('Backup is not valid tracker data.')
-  const candidate = value as AppState | VersionFourAppState | VersionThreeAppState | VersionTwoAppState | LegacyAppState
+  const candidate = value as AppState | VersionFiveAppState | VersionFourAppState | VersionThreeAppState | VersionTwoAppState | LegacyAppState
   if (!Array.isArray(candidate.profiles)) throw new Error('Backup is not valid tracker data.')
   if (candidate.schemaVersion === 1) return validateState(migrateLegacyState(candidate))
   if (candidate.schemaVersion === 2) return validateState(migrateVersionTwoState(candidate))
   if (candidate.schemaVersion === 3) return validateState(migrateVersionThreeState(candidate))
   if (candidate.schemaVersion === 4) return validateState(migrateVersionFourState(candidate))
-  if (candidate.schemaVersion === 5) return validateState(candidate)
+  if (candidate.schemaVersion === 5) return validateState(migrateVersionFiveState(candidate))
+  if (candidate.schemaVersion === 6) return validateState(candidate)
   throw new Error('This backup version is not supported.')
 }
 
@@ -370,6 +445,83 @@ export function updateProfileSettings(
       profile.id === profileId ? { ...profile, ...input } : profile,
     ),
   }
+}
+
+export function normalizeFoodName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase()
+}
+
+export function findDuplicateFoodEntry(
+  entries: FoodLibraryEntry[],
+  input: Pick<FoodLibraryEntry, 'food' | 'weightGrams'>,
+  excludeId?: string,
+): FoodLibraryEntry | undefined {
+  const normalizedFood = normalizeFoodName(input.food)
+  return entries.find((entry) =>
+    entry.id !== excludeId
+    && normalizeFoodName(entry.food) === normalizedFood
+    && entry.weightGrams === input.weightGrams,
+  )
+}
+
+export function createFoodLibraryEntry(input: {
+  food: string
+  category: FoodCategory
+  calories: number
+  weightGrams: number
+  mealType: MealType
+  remarks?: string
+}): FoodLibraryEntry {
+  const cleanInput = {
+    ...input,
+    food: input.food.trim().replace(/\s+/g, ' '),
+    remarks: input.remarks?.trim() ?? '',
+  }
+  assertFoodLibraryInput(cleanInput)
+  return {
+    id: id(),
+    createdAt: new Date().toISOString(),
+    ...cleanInput,
+  }
+}
+
+export function addFoodLibraryEntry(state: AppState, entry: FoodLibraryEntry): AppState {
+  assertFoodLibraryInput(entry)
+  return { ...state, foodLibrary: [...state.foodLibrary, entry] }
+}
+
+export function updateFoodLibraryEntry(
+  state: AppState,
+  entryId: string,
+  input: {
+    food: string
+    category: FoodCategory
+    calories: number
+    weightGrams: number
+    mealType: MealType
+    remarks?: string
+  },
+): AppState {
+  const cleanInput = {
+    ...input,
+    food: input.food.trim().replace(/\s+/g, ' '),
+    remarks: input.remarks?.trim() ?? '',
+  }
+  assertFoodLibraryInput(cleanInput)
+  if (!state.foodLibrary.some((entry) => entry.id === entryId)) throw new Error('Food entry was not found.')
+  return {
+    ...state,
+    foodLibrary: state.foodLibrary.map((entry) =>
+      entry.id === entryId
+        ? { ...entry, ...cleanInput, updatedAt: new Date().toISOString() }
+        : entry,
+    ),
+  }
+}
+
+export function deleteFoodLibraryEntry(state: AppState, entryId: string): AppState {
+  if (!state.foodLibrary.some((entry) => entry.id === entryId)) throw new Error('Food entry was not found.')
+  return { ...state, foodLibrary: state.foodLibrary.filter((entry) => entry.id !== entryId) }
 }
 
 export function setTheme(state: AppState, theme: Theme): AppState {

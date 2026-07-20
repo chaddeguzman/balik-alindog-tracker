@@ -3,6 +3,7 @@ import { ProfileForm } from './components/ProfileForm'
 import { ProgressChart } from './components/ProgressChart'
 import { BaselineForm } from './components/BaselineForm'
 import { BmiGuide } from './components/BmiGuide'
+import { CalorieTracker } from './components/CalorieTracker'
 import { adultBodyFatGuide, estimateAdultBodyFatPercent } from './lib/bodyFat'
 import { calculateAge, formatDate, todayLocal } from './lib/date'
 import { exportAllJson, exportProfileCsv } from './lib/export'
@@ -24,7 +25,7 @@ import {
 import { estimateGoalDate, sevenDayAverage, weeklyAverageChange } from './lib/trends'
 import { centimetersFromFeet, formatHeight, formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
 import { addHealthMemory, extractHealthMemoryCommand, sendHealthChatMessage } from './lib/healthTrackApi'
-import type { AppState, Gender, Measurement, Profile, Unit } from './types'
+import type { AppState, FoodLibraryEntry, Gender, Measurement, Profile, Unit } from './types'
 
 const LAST_BACKUP_KEY = 'balik-alindog-tracker:last-backup-at'
 const BACKUP_REMINDER_DAYS = 14
@@ -330,7 +331,7 @@ function renderHealthChatMarkdown(text: string): ReactNode {
   return <div className="health-chat-markdown">{blocks}</div>
 }
 
-function HealthChat({ profile }: { profile: Profile }) {
+function HealthChat({ profile, foodLibrary }: { profile: Profile; foodLibrary: FoodLibraryEntry[] }) {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -361,7 +362,7 @@ function HealthChat({ profile }: { profile: Profile }) {
       const memoryText = extractHealthMemoryCommand(userText)
       const reply = memoryText
         ? addHealthMemory(memoryText) && `I'll remember: ${memoryText}`
-        : await sendHealthChatMessage(userText, profile)
+        : await sendHealthChatMessage(userText, profile, { foodLibrary })
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: 'assistant', text: reply || 'I could not generate a response. Please try again.' }])
     } catch (error) {
       setMessages((current) => [
@@ -392,7 +393,7 @@ function HealthChat({ profile }: { profile: Profile }) {
           </div>
         </div>
         <p className="health-chat-disclaimer">
-          Not medical advice. Messages may include {profile.name}'s tracker history for context.
+          Not medical advice. Messages may include {profile.name}'s tracker history and the shared household food library for context.
         </p>
         <div ref={messagesRef} className="health-chat-messages" aria-live="polite" aria-busy={sending}>
           {messages.map((message) => (
@@ -704,13 +705,13 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
           notify(error instanceof Error ? error.message : 'Could not save the baseline.')
         }
       }} /></Modal>}
-      <HealthChat key={profile.id} profile={profile} />
     </>
   )
 }
 
 export default function App() {
   const [state, setState] = useState<AppState>(() => loadState())
+  const [activeTab, setActiveTab] = useState<'overview' | 'calorie-tracker'>('overview')
   const [profileModal, setProfileModal] = useState(false)
   const [toast, setToast] = useState('')
   const [backupDue, setBackupDue] = useState(() => isBackupDue(window.localStorage.getItem(LAST_BACKUP_KEY)))
@@ -826,16 +827,47 @@ export default function App() {
         </div>
       </header>
       <main id="top" className="main-content">
-        <Dashboard
-          profile={activeProfile}
-          state={state}
-          setState={setState}
-          notify={setToast}
-          backupDue={backupDue}
-          onBackup={handleBackupDownload}
-        />
+        <nav className="app-tabs" role="tablist" aria-label="Tracker views">
+          <button
+            id="overview-tab"
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'overview'}
+            aria-controls="overview-panel"
+            onClick={() => setActiveTab('overview')}
+          >
+            Overview
+          </button>
+          <button
+            id="calorie-tracker-tab"
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'calorie-tracker'}
+            aria-controls="calorie-tracker-panel"
+            onClick={() => setActiveTab('calorie-tracker')}
+          >
+            Calorie Tracker
+          </button>
+        </nav>
+        {activeTab === 'overview' ? (
+          <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab">
+            <Dashboard
+              profile={activeProfile}
+              state={state}
+              setState={setState}
+              notify={setToast}
+              backupDue={backupDue}
+              onBackup={handleBackupDownload}
+            />
+          </div>
+        ) : (
+          <div id="calorie-tracker-panel" role="tabpanel" aria-labelledby="calorie-tracker-tab">
+            <CalorieTracker state={state} setState={setState} notify={setToast} />
+          </div>
+        )}
         <footer><span>Stored privately in this browser · never uploaded to the repository</span><span>•</span><span>{state.profiles.length} of {MAX_PROFILES} profiles</span><span>•</span><span>Health chat uses the active profile only</span></footer>
       </main>
+      <HealthChat key={activeProfile.id} profile={activeProfile} foodLibrary={state.foodLibrary} />
       {profileModal && <Modal title="Add a household member" onClose={() => setProfileModal(false)}><ProfileForm onSubmit={handleNewProfile} onCancel={() => setProfileModal(false)} /></Modal>}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

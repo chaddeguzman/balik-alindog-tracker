@@ -1,6 +1,6 @@
 import { calculateAge } from './date'
 import { formatHeight, formatWeight } from './units'
-import type { Profile } from '../types'
+import type { FoodLibraryEntry, Profile } from '../types'
 
 export const HEALTH_API = import.meta.env.HEALTH_API ?? import.meta.env.VITE_HEALTH_API ?? ''
 export const MODEL_NAME = 'gemini-3.1-flash-lite'
@@ -22,6 +22,13 @@ interface GeminiTextPart {
 interface GeminiResponse {
   candidates?: Array<{ content?: { parts?: GeminiTextPart[] } }>
   error?: { message?: string }
+}
+
+interface HealthChatOptions {
+  apiKey?: string
+  memories?: HealthMemory[]
+  temperature?: number
+  foodLibrary?: FoodLibraryEntry[]
 }
 
 function healthApiUrl(apiKey = HEALTH_API): string {
@@ -110,13 +117,42 @@ export function buildActiveProfileHealthContext(profile: Profile): string {
   ].join('\n')
 }
 
+function cleanPromptValue(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+export function buildSharedFoodLibraryContext(foodLibrary: FoodLibraryEntry[]): string {
+  if (!foodLibrary.length) return 'No foods are saved in the shared household food library.'
+  const foods = foodLibrary.map((entry) => {
+    const caloriesPerGram = entry.calories / entry.weightGrams
+    return [
+      `- ${cleanPromptValue(entry.food)}`,
+      `category ${entry.category}`,
+      `${entry.calories} kcal per ${entry.weightGrams} g`,
+      `${caloriesPerGram.toFixed(4)} kcal/g`,
+      `meal type ${entry.mealType}`,
+      `remarks ${cleanPromptValue(entry.remarks) || 'none'}`,
+    ].join(' | ')
+  })
+  return [
+    'These are reusable foods available to the household. They are not a consumption log and do not prove that the active profile ate them.',
+    'Scale calories proportionally for a requested serving: requested grams / saved grams * saved calories.',
+    ...foods,
+  ].join('\n')
+}
+
 function formatMemoryPrompt(memories = getStoredHealthMemories()): string {
   const lines = memories.map((memory) => memory.text).filter(Boolean)
   if (!lines.length) return ''
   return `Remember these locally saved user preferences when relevant:\n${lines.map((line) => `- ${line}`).join('\n')}`
 }
 
-export function buildHealthPrompt(userInput: string, profile: Profile, memories = getStoredHealthMemories()): string {
+export function buildHealthPrompt(
+  userInput: string,
+  profile: Profile,
+  memories = getStoredHealthMemories(),
+  foodLibrary: FoodLibraryEntry[] = [],
+): string {
   const memoryBlock = formatMemoryPrompt(memories)
   return [
     'You are the Balik Alindog wellness coach for a private weight and body-fat tracker.',
@@ -129,6 +165,10 @@ export function buildHealthPrompt(userInput: string, profile: Profile, memories 
     '<active_profile_context>',
     buildActiveProfileHealthContext(profile),
     '</active_profile_context>',
+    '',
+    '<shared_household_food_library>',
+    buildSharedFoodLibraryContext(foodLibrary),
+    '</shared_household_food_library>',
     memoryBlock ? `\n${memoryBlock}` : '',
     '',
     `User: ${String(userInput || '').trim()}`,
@@ -145,7 +185,7 @@ function parseGeminiText(data: GeminiResponse): string {
 export async function sendHealthChatMessage(
   message: string,
   profile: Profile,
-  options: { apiKey?: string; memories?: HealthMemory[]; temperature?: number } = {},
+  options: HealthChatOptions = {},
 ): Promise<string> {
   const apiKey = options.apiKey ?? HEALTH_API
   if (!isConfiguredApiKey(apiKey)) throw new Error(MISSING_HEALTH_API_MESSAGE)
@@ -156,7 +196,7 @@ export async function sendHealthChatMessage(
     body: JSON.stringify({
       contents: [{
         role: 'user',
-        parts: [{ text: buildHealthPrompt(message, profile, options.memories || getStoredHealthMemories()) }],
+        parts: [{ text: buildHealthPrompt(message, profile, options.memories || getStoredHealthMemories(), options.foodLibrary) }],
       }],
       generationConfig: { temperature: options.temperature ?? 0.25 },
     }),
@@ -168,7 +208,7 @@ export async function sendHealthChatMessage(
   return parseGeminiText(data) || 'I could not generate a response. Please try again.'
 }
 
-export function createHealthChat(options: { apiKey?: string; memories?: HealthMemory[]; temperature?: number } = {}) {
+export function createHealthChat(options: HealthChatOptions = {}) {
   const history: Array<{ role: string; text: string; createdAt: string }> = []
   return {
     history,

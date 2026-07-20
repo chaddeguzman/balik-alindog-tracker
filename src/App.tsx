@@ -390,7 +390,6 @@ function HealthChat({ profile }: { profile: Profile }) {
             <p className="eyebrow">Health chat</p>
             <h2>Wellness coach</h2>
           </div>
-          <button className="icon-button" type="button" aria-label="Close health chat" onClick={() => setOpen(false)}>×</button>
         </div>
         <p className="health-chat-disclaimer">
           Not medical advice. Messages may include {profile.name}'s tracker history for context.

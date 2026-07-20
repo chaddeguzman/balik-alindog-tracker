@@ -17,12 +17,13 @@ import {
   restoreStateFromBackup,
   saveState,
   setTheme,
+  updateMeasurement,
   updateProfileDetails,
   updateProfileSettings,
 } from './lib/storage'
 import { estimateGoalDate, sevenDayAverage, weeklyAverageChange } from './lib/trends'
 import { centimetersFromFeet, formatHeight, formatWeight, fromKilograms, toKilograms, unitRange } from './lib/units'
-import type { AppState, Gender, Profile, Theme, Unit } from './types'
+import type { AppState, Gender, Measurement, Profile, Theme, Unit } from './types'
 
 const LAST_BACKUP_KEY = 'balik-alindog-tracker:last-backup-at'
 const BACKUP_REMINDER_DAYS = 14
@@ -45,14 +46,25 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
   )
 }
 
-function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (date: string, weightKg: number, bodyFat?: number) => void; onCancel: () => void }) {
+function EntryForm({
+  profile,
+  entry,
+  onSave,
+  onCancel,
+}: {
+  profile: Profile
+  entry?: Measurement
+  onSave: (date: string, weightKg: number, bodyFat?: number) => void
+  onCancel: () => void
+}) {
   const unit = profile.preferredUnit
-  const date = todayLocal()
-  const [weight, setWeight] = useState('')
-  const [bodyFat, setBodyFat] = useState('')
+  const date = entry?.date ?? todayLocal()
+  const [weight, setWeight] = useState(entry ? fromKilograms(entry.weightKg, unit).toFixed(1) : '')
+  const [bodyFat, setBodyFat] = useState(entry?.bodyFatPercent?.toString() ?? '')
   const [confirming, setConfirming] = useState(false)
   const range = unitRange(unit)
   const weightKg = toKilograms(Number(weight), unit)
+  const isEditing = Boolean(entry)
 
   function review(event: FormEvent) {
     event.preventDefault()
@@ -64,7 +76,7 @@ function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (d
       <div className="confirmation">
         <div className="notice warning">
           <strong>Check this entry carefully.</strong>
-          <span>After saving, it cannot be edited or deleted.</span>
+          <span>{isEditing ? 'This entry can only be edited once.' : 'After saving, the entry can be edited one time.'}</span>
         </div>
         <dl className="confirmation-list">
           <div><dt>Date</dt><dd>{formatDate(date)}</dd></div>
@@ -73,7 +85,7 @@ function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (d
         </dl>
         <div className="form-actions">
           <button className="button secondary" onClick={() => setConfirming(false)}>Go back</button>
-          <button className="button primary" onClick={() => onSave(date, weightKg, bodyFat ? Number(bodyFat) : undefined)}>Save permanently</button>
+          <button className="button primary" onClick={() => onSave(date, weightKg, bodyFat ? Number(bodyFat) : undefined)}>{isEditing ? 'Save edit' : 'Save entry'}</button>
         </div>
       </div>
     )
@@ -81,11 +93,11 @@ function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (d
 
   return (
     <form onSubmit={review} className="form-stack">
-      <p className="helper-text">For consistent results, record in the morning before eating or drinking.</p>
+      <p className="helper-text">{isEditing ? 'Correct the saved values for this measurement day.' : 'For consistent results, record in the morning before eating or drinking.'}</p>
       <label>
         Measurement date
         <input type="date" readOnly value={date} />
-        <small className="field-note">Captured from this device's system date.</small>
+        <small className="field-note">{isEditing ? 'Measurement dates stay fixed when editing.' : "Captured from this device's system date."}</small>
       </label>
       <div className="form-grid">
         <label>
@@ -99,7 +111,7 @@ function EntryForm({ profile, onSave, onCancel }: { profile: Profile; onSave: (d
       </div>
       <div className="form-actions">
         <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
-        <button className="button primary" type="submit">Review entry</button>
+        <button className="button primary" type="submit">{isEditing ? 'Review edit' : 'Review entry'}</button>
       </div>
     </form>
   )
@@ -304,6 +316,7 @@ function BodyFatGuideCard({ profile, onSelectTarget }: { profile: Profile; onSel
 
 function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { profile: Profile; state: AppState; setState: (state: AppState) => void; notify: (message: string) => void; backupDue: boolean; onBackup: () => void }) {
   const [entryOpen, setEntryOpen] = useState(false)
+  const [editingEntry, setEditingEntry] = useState<Measurement | null>(null)
   const [baselineOpen, setBaselineOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const entries = profile.entries
@@ -325,10 +338,23 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
       const next = addMeasurement(state, profile.id, createMeasurement({ date, weightKg, bodyFatPercent: bodyFat }))
       setState(next)
       setEntryOpen(false)
-      notify('Measurement saved permanently.')
+      notify('Measurement saved.')
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Could not save the measurement.')
       setEntryOpen(false)
+    }
+  }
+
+  function saveEntryEdit(_date: string, weightKg: number, bodyFat?: number) {
+    if (!editingEntry) return
+    try {
+      const next = updateMeasurement(state, profile.id, editingEntry.id, { weightKg, bodyFatPercent: bodyFat })
+      setState(next)
+      setEditingEntry(null)
+      notify('Measurement edit saved.')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Could not edit the measurement.')
+      setEditingEntry(null)
     }
   }
 
@@ -423,13 +449,22 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
           </div>
           {entries.length ? (
             <div className="table-scroll"><table>
-              <thead><tr><th>Date</th><th>Weight</th><th>Body fat</th></tr></thead>
+              <thead><tr><th>Date</th><th>Weight</th><th>Body fat</th><th>Action</th></tr></thead>
               <tbody>{[...entries].reverse().slice(0, 8).map((entry) => (
-                <tr key={entry.id}><td>{formatDate(entry.date)}</td><td>{formatWeight(entry.weightKg, profile.preferredUnit)}</td><td>{entry.bodyFatPercent !== undefined ? `${entry.bodyFatPercent.toFixed(1)}%` : '—'}</td></tr>
+                <tr key={entry.id}>
+                  <td>{formatDate(entry.date)}</td>
+                  <td>{formatWeight(entry.weightKg, profile.preferredUnit)}</td>
+                  <td>{entry.bodyFatPercent !== undefined ? `${entry.bodyFatPercent.toFixed(1)}%` : '—'}</td>
+                  <td>
+                    <button className="button compact secondary" type="button" disabled={Boolean(entry.editedAt)} onClick={() => setEditingEntry(entry)}>
+                      {entry.editedAt ? 'Edited' : 'Edit Entry'}
+                    </button>
+                  </td>
+                </tr>
               ))}</tbody>
             </table></div>
           ) : <p className="empty-copy">No measurements recorded yet.</p>}
-          <p className="immutable-note">Entries are permanent and cannot be edited or deleted.</p>
+          <p className="immutable-note">Each entry can be edited once. Measurement dates and deleted entries stay locked.</p>
         </section>
 
         <section className="card settings-card">
@@ -442,6 +477,7 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
       </div>
 
       {entryOpen && <Modal title="Add measurement" onClose={() => setEntryOpen(false)}><EntryForm profile={profile} onSave={saveEntry} onCancel={() => setEntryOpen(false)} /></Modal>}
+      {editingEntry && <Modal title="Edit Entry" onClose={() => setEditingEntry(null)}><EntryForm profile={profile} entry={editingEntry} onSave={saveEntryEdit} onCancel={() => setEditingEntry(null)} /></Modal>}
       {editOpen && <Modal title="Edit Profile" onClose={() => setEditOpen(false)}><EditProfileForm profile={profile} onCancel={() => setEditOpen(false)} onSave={(input) => {
         try {
           setState(updateProfileDetails(state, profile.id, input))

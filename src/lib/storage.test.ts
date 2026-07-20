@@ -8,6 +8,7 @@ import {
   initialState,
   loadState,
   saveState,
+  updateMeasurement,
   updateProfileDetails,
 } from './storage'
 
@@ -45,6 +46,19 @@ describe('tracker data rules', () => {
     let state = addProfile(initialState, profile)
     state = addMeasurement(state, profile.id, createMeasurement({ date: '2000-01-01', weightKg: 82, bodyFatPercent: 26 }))
     expect(state.profiles[0].entries.map((entry) => entry.date)).toEqual(['2000-01-01', todayLocal()])
+  })
+
+  it('updates a saved measurement only once', () => {
+    const profile = createProfile(profileInput())
+    const state = addProfile(initialState, profile)
+    const entry = state.profiles[0].entries[0]
+
+    const updated = updateMeasurement(state, profile.id, entry.id, { weightKg: 78.5, bodyFatPercent: 23 })
+
+    expect(updated.profiles[0].entries[0].weightKg).toBe(78.5)
+    expect(updated.profiles[0].entries[0].bodyFatPercent).toBe(23)
+    expect(updated.profiles[0].entries[0].editedAt).toEqual(expect.any(String))
+    expect(() => updateMeasurement(updated, profile.id, entry.id, { weightKg: 78 })).toThrow(/already been edited once/i)
   })
 
   it('restores saved profiles and measurements after a reload', () => {
@@ -88,7 +102,7 @@ describe('tracker data rules', () => {
     }))
 
     const migrated = loadState()
-    expect(migrated.schemaVersion).toBe(4)
+    expect(migrated.schemaVersion).toBe(5)
     expect(migrated.profiles[0].name).toBe('Existing person')
     expect(migrated.profiles[0].entries[0].weightKg).toBe(80)
     expect(migrated.profiles[0].baselineEntryId).toBe('legacy-entry')
@@ -107,7 +121,7 @@ describe('tracker data rules', () => {
     }))
 
     const migrated = loadState()
-    expect(migrated.schemaVersion).toBe(4)
+    expect(migrated.schemaVersion).toBe(5)
     expect(migrated.profiles[0].name).toBe('Legacy person')
     expect(migrated.profiles[0].gender).toBeUndefined()
   })

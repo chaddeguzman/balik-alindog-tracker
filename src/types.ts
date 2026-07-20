@@ -6,6 +6,7 @@ export interface Measurement {
   id: string
   date: string
   recordedAt: string
+  editedAt?: string
   weightKg: number
   bodyFatPercent?: number
 }
@@ -27,7 +28,7 @@ export interface Profile {
 }
 
 export interface AppState {
-  schemaVersion: 4
+  schemaVersion: 5
   theme: Theme
   activeProfileId: string | null
   profiles: Profile[]

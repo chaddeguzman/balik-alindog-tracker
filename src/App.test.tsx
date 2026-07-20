@@ -94,9 +94,36 @@ describe('Balik Alindog Tracker', () => {
     expect(within(dialog).getByLabelText(/measurement date/i)).toHaveValue(todayLocal())
     await user.type(within(dialog).getByLabelText(/weight \(kg\)/i), '79')
     await user.click(within(dialog).getByRole('button', { name: /review entry/i }))
-    await user.click(within(dialog).getByRole('button', { name: /save permanently/i }))
+    await user.click(within(dialog).getByRole('button', { name: /save entry/i }))
 
     expect(await screen.findByRole('button', { name: /today is recorded/i })).toBeDisabled()
+  })
+
+  it('edits a saved entry once from history', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Kai',
+      preferredUnit: 'kg',
+      heightCm: 170,
+      birthDate: '1990-01-15',
+      gender: 'male',
+      currentWeightKg: 80,
+      goalWeightKg: 70,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: /edit entry/i }))
+    const dialog = screen.getByRole('dialog', { name: /edit entry/i })
+    const weightInput = within(dialog).getByLabelText(/weight \(kg\)/i)
+    await user.clear(weightInput)
+    await user.type(weightInput, '79.4')
+    await user.click(within(dialog).getByRole('button', { name: /review edit/i }))
+    await user.click(within(dialog).getByRole('button', { name: /save edit/i }))
+
+    expect(await screen.findByText(/measurement edit saved/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edited/i })).toBeDisabled()
+    expect(screen.getAllByText('79.4 kg').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows a sample forecast in the progress chart', async () => {

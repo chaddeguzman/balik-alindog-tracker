@@ -5,7 +5,7 @@ export const STORAGE_KEY = 'balik-alindog-tracker:v1'
 export const MAX_PROFILES = 10
 
 export const initialState: AppState = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   theme: 'system',
   activeProfileId: null,
   profiles: [],
@@ -24,6 +24,10 @@ interface VersionTwoAppState extends Omit<AppState, 'schemaVersion'> {
 
 interface VersionThreeAppState extends Omit<AppState, 'schemaVersion'> {
   schemaVersion: 3
+}
+
+interface VersionFourAppState extends Omit<AppState, 'schemaVersion'> {
+  schemaVersion: 4
 }
 
 function isGender(value: unknown): value is Gender {
@@ -80,7 +84,7 @@ function assertBirthDate(birthDate: string): void {
 
 function migrateLegacyState(state: LegacyAppState): AppState {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     theme: state.theme,
     activeProfileId: state.activeProfileId,
     profiles: state.profiles.map((profile) => ({
@@ -93,7 +97,7 @@ function migrateLegacyState(state: LegacyAppState): AppState {
 function migrateVersionTwoState(state: VersionTwoAppState): AppState {
   return {
     ...state,
-    schemaVersion: 4,
+    schemaVersion: 5,
     profiles: state.profiles.map(sanitizeProfileGender),
   }
 }
@@ -101,8 +105,15 @@ function migrateVersionTwoState(state: VersionTwoAppState): AppState {
 function migrateVersionThreeState(state: VersionThreeAppState): AppState {
   return {
     ...state,
-    schemaVersion: 4,
+    schemaVersion: 5,
     profiles: state.profiles.map(sanitizeProfileGender),
+  }
+}
+
+function migrateVersionFourState(state: VersionFourAppState): AppState {
+  return {
+    ...state,
+    schemaVersion: 5,
   }
 }
 
@@ -122,6 +133,7 @@ function validateState(state: AppState): AppState {
     const dates = new Set<string>()
     for (const entry of profile.entries) {
       if (!entry || typeof entry.id !== 'string' || typeof entry.recordedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)) throw new Error('Backup contains an invalid measurement.')
+      if (entry.editedAt !== undefined && typeof entry.editedAt !== 'string') throw new Error('Backup contains an invalid measurement.')
       assertWeight(entry.weightKg)
       assertBodyFat(entry.bodyFatPercent)
       if (dates.has(entry.date)) throw new Error('Backup contains duplicate measurement dates.')
@@ -136,12 +148,13 @@ function validateState(state: AppState): AppState {
 
 function parseState(value: unknown): AppState {
   if (!value || typeof value !== 'object') throw new Error('Backup is not valid tracker data.')
-  const candidate = value as AppState | VersionThreeAppState | VersionTwoAppState | LegacyAppState
+  const candidate = value as AppState | VersionFourAppState | VersionThreeAppState | VersionTwoAppState | LegacyAppState
   if (!Array.isArray(candidate.profiles)) throw new Error('Backup is not valid tracker data.')
   if (candidate.schemaVersion === 1) return validateState(migrateLegacyState(candidate))
   if (candidate.schemaVersion === 2) return validateState(migrateVersionTwoState(candidate))
   if (candidate.schemaVersion === 3) return validateState(migrateVersionThreeState(candidate))
-  if (candidate.schemaVersion === 4) return validateState(candidate)
+  if (candidate.schemaVersion === 4) return validateState(migrateVersionFourState(candidate))
+  if (candidate.schemaVersion === 5) return validateState(candidate)
   throw new Error('This backup version is not supported.')
 }
 
@@ -309,6 +322,37 @@ export function addMeasurement(state: AppState, profileId: string, entry: Measur
         throw new Error('This profile already has an entry for that date.')
       }
       return { ...profile, entries: [...profile.entries, entry].sort((a, b) => a.date.localeCompare(b.date)) }
+    }),
+  }
+}
+
+export function updateMeasurement(
+  state: AppState,
+  profileId: string,
+  entryId: string,
+  input: { weightKg: number; bodyFatPercent?: number },
+): AppState {
+  assertWeight(input.weightKg)
+  assertBodyFat(input.bodyFatPercent)
+
+  return {
+    ...state,
+    profiles: state.profiles.map((profile) => {
+      if (profile.id !== profileId) return profile
+      if (!profile.entries.some((entry) => entry.id === entryId)) throw new Error('Measurement was not found.')
+      return {
+        ...profile,
+        entries: profile.entries.map((entry) => {
+          if (entry.id !== entryId) return entry
+          if (entry.editedAt) throw new Error('This entry has already been edited once.')
+          return {
+            ...entry,
+            editedAt: new Date().toISOString(),
+            weightKg: input.weightKg,
+            bodyFatPercent: input.bodyFatPercent,
+          }
+        }),
+      }
     }),
   }
 }

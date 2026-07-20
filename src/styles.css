@@ -291,12 +291,12 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .health-chat-toggle::after { top: 0; left: 16px; }
 .health-chat-toggle:hover { background: var(--primary-dark); transform: rotate(-45deg) translateY(-2px); }
 .health-chat-toggle span:not(.sr-only) { position: relative; z-index: 1; top: -4px; left: 2px; animation: health-heart-beat 1.15s ease-in-out infinite; line-height: 1; }
-.health-chat-panel { width: min(390px, calc(100vw - 32px)); max-height: min(620px, calc(100vh - 110px)); display: flex; flex-direction: column; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: 0 24px 70px rgba(0,0,0,.18); }
+.health-chat-panel { width: min(390px, calc(100vw - 32px)); max-height: min(775px, calc(100vh - 110px)); display: flex; flex-direction: column; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: 0 24px 70px rgba(0,0,0,.18); }
 .health-chat-panel[hidden] { display: none; }
 .health-chat-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
 .health-chat-header .eyebrow { margin-bottom: 4px; }
 .health-chat-disclaimer { margin: 0 0 12px; padding: 10px 11px; border-radius: 10px; background: var(--surface-soft); color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
-.health-chat-messages { min-height: 220px; max-height: 330px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px 2px 12px; }
+.health-chat-messages { min-height: 275px; max-height: 413px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px 2px 12px; }
 .health-chat-message { width: fit-content; max-width: 86%; padding: 10px 12px; border-radius: 13px; white-space: pre-wrap; font-size: 0.88rem; line-height: 1.45; }
 .health-chat-message.assistant-message { align-self: flex-start; background: var(--surface-soft); color: var(--text); }
 .health-chat-message.user-message { align-self: flex-end; background: var(--primary); color: #fff; }

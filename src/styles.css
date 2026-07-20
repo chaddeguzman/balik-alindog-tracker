@@ -261,7 +261,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .health-chat-toggle::before { top: -16px; left: 0; }
 .health-chat-toggle::after { top: 0; left: 16px; }
 .health-chat-toggle:hover { background: var(--primary-dark); transform: rotate(-45deg) translateY(-2px); }
-.health-chat-toggle span:not(.sr-only) { position: relative; z-index: 1; animation: health-heart-beat 1.15s ease-in-out infinite; line-height: 1; }
+.health-chat-toggle span:not(.sr-only) { position: relative; z-index: 1; top: -4px; animation: health-heart-beat 1.15s ease-in-out infinite; line-height: 1; }
 .health-chat-panel { width: min(390px, calc(100vw - 32px)); max-height: min(620px, calc(100vh - 110px)); display: flex; flex-direction: column; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: 0 24px 70px rgba(0,0,0,.18); }
 .health-chat-panel[hidden] { display: none; }
 .health-chat-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }

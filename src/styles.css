@@ -97,6 +97,8 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .welcome-row { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 30px; }
 .welcome-row p:last-child { color: var(--muted); margin: 0; }
 .welcome-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.profile-name-button { padding: 0; border: 0; background: transparent; color: var(--primary); font: inherit; font-weight: inherit; letter-spacing: inherit; text-align: left; text-decoration: underline; text-decoration-thickness: 0.08em; text-underline-offset: 0.1em; }
+.profile-name-button:hover { color: var(--primary-dark); }
 .eyebrow { color: var(--primary); font-size: 0.73rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 8px; }
 .button { min-height: 44px; border-radius: 12px; padding: 0 18px; border: 1px solid transparent; font-weight: 700; transition: transform 140ms ease, background 140ms ease; }
 .button:hover:not(:disabled) { transform: translateY(-1px); }
@@ -125,9 +127,8 @@ h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; }
 .progress-track span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
 
 .card { border-radius: 20px; padding: 25px; }
-.profile-summary-card { margin-bottom: 18px; }
-.profile-summary-card .section-heading { margin-bottom: 16px; }
-.profile-summary-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 0; }
+.profile-details { display: flex; flex-direction: column; gap: 18px; }
+.profile-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 0; }
 .profile-summary-grid div { min-width: 0; padding: 13px; border-radius: 13px; background: var(--surface-soft); }
 .profile-summary-grid dt { color: var(--muted); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
 .profile-summary-grid dd { margin: 5px 0 0; font-weight: 800; overflow-wrap: anywhere; }
@@ -262,7 +263,6 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
 @media (max-width: 900px) {
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .trend-grid { grid-template-columns: 1fr 1fr; }
-  .profile-summary-grid { grid-template-columns: repeat(3, 1fr); }
   .content-grid { grid-template-columns: 1fr; }
   .settings-card .form-grid.three { grid-template-columns: repeat(3, 1fr); }
   .export-all { display: none; }
@@ -295,7 +295,6 @@ footer { display: flex; justify-content: center; flex-wrap: wrap; gap: 9px; padd
   .body-fat-guide-card .section-heading { align-items: flex-start; flex-direction: column; }
   .body-fat-score { align-items: flex-start; }
   .body-fat-grid { grid-template-columns: 1fr; }
-  .profile-summary-grid { grid-template-columns: 1fr 1fr; }
   .backup-reminder { align-items: stretch; flex-direction: column; }
   .backup-reminder .button { width: 100%; }
   .incomplete-card { align-items: stretch; flex-direction: column; }

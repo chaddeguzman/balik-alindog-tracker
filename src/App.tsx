@@ -232,15 +232,13 @@ function weeklyChangeLabel(changeKg: number | null, unit: Unit): string {
   return `${direction} ${Math.abs(fromKilograms(changeKg, unit)).toFixed(1)} ${unit} this week`
 }
 
-function ProfileSummaryCard({ profile }: { profile: Profile }) {
+function ProfileDetails({ profile }: { profile: Profile }) {
   const latest = profile.entries.at(-1)
   const baseline = profile.entries.find((entry) => entry.id === profile.baselineEntryId) ?? profile.entries[0]
 
   return (
-    <section className="card profile-summary-card" aria-label="Profile summary">
-      <div className="section-heading">
-        <div><p className="eyebrow">Profile</p><h2>{profile.name}</h2></div>
-      </div>
+    <div className="profile-details">
+      <p className="helper-text">Profile details and current progress for this household member.</p>
       <dl className="profile-summary-grid">
         <div><dt>Height</dt><dd>{profile.heightCm ? formatHeight(profile.heightCm, profile.preferredUnit) : 'Missing'}</dd></div>
         <div><dt>Age</dt><dd>{profile.birthDate ? calculateAge(profile.birthDate) : 'Missing'}</dd></div>
@@ -249,7 +247,7 @@ function ProfileSummaryCard({ profile }: { profile: Profile }) {
         <div><dt>Current</dt><dd>{latest ? formatWeight(latest.weightKg, profile.preferredUnit) : 'Missing'}</dd></div>
         <div><dt>Target</dt><dd>{formatWeight(profile.goalWeightKg, profile.preferredUnit)}</dd></div>
       </dl>
-    </section>
+    </div>
   )
 }
 
@@ -319,6 +317,7 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
   const [editingEntry, setEditingEntry] = useState<Measurement | null>(null)
   const [baselineOpen, setBaselineOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [profileDetailsOpen, setProfileDetailsOpen] = useState(false)
   const entries = profile.entries
   const latest = entries.at(-1)
   const latestBodyFat = [...entries].reverse().find((entry) => entry.bodyFatPercent !== undefined)
@@ -363,7 +362,12 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
       <section className="welcome-row">
         <div>
           <p className="eyebrow">Your dashboard</p>
-          <h1>Good day, {profile.name}</h1>
+          <h1>
+            Good day,{' '}
+            <button className="profile-name-button" type="button" onClick={() => setProfileDetailsOpen(true)}>
+              {profile.name}
+            </button>
+          </h1>
           <p>{latest ? `Last check-in ${formatDate(latest.date)}` : 'Start with your first morning measurement.'}</p>
         </div>
         <div className="welcome-actions">
@@ -418,8 +422,6 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
           <small>{goalDate ? 'At your current trend, this is an estimate only.' : 'Needs a consistent trend toward the target.'}</small>
         </article>
       </section>
-
-      <ProfileSummaryCard profile={profile} />
 
       <BmiGuide profile={profile} onCompleteBaseline={() => setBaselineOpen(true)} onSelectTargetWeight={(goalWeightKg) => {
         setState(updateProfileSettings(state, profile.id, {
@@ -478,6 +480,7 @@ function Dashboard({ profile, state, setState, notify, backupDue, onBackup }: { 
 
       {entryOpen && <Modal title="Add measurement" onClose={() => setEntryOpen(false)}><EntryForm profile={profile} onSave={saveEntry} onCancel={() => setEntryOpen(false)} /></Modal>}
       {editingEntry && <Modal title="Edit Entry" onClose={() => setEditingEntry(null)}><EntryForm profile={profile} entry={editingEntry} onSave={saveEntryEdit} onCancel={() => setEditingEntry(null)} /></Modal>}
+      {profileDetailsOpen && <Modal title={profile.name} onClose={() => setProfileDetailsOpen(false)}><ProfileDetails profile={profile} /></Modal>}
       {editOpen && <Modal title="Edit Profile" onClose={() => setEditOpen(false)}><EditProfileForm profile={profile} onCancel={() => setEditOpen(false)} onSave={(input) => {
         try {
           setState(updateProfileDetails(state, profile.id, input))

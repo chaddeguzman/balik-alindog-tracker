@@ -47,6 +47,30 @@ describe('Balik Alindog Tracker', () => {
     expect(screen.getByLabelText(/active household member/i)).toHaveValue(existing.id)
   })
 
+  it('opens profile details from the greeting name', async () => {
+    const user = userEvent.setup()
+    const existing = createProfile({
+      name: 'Jamie',
+      preferredUnit: 'kg',
+      heightCm: 168,
+      birthDate: '1984-03-20',
+      gender: 'male',
+      currentWeightKg: 76,
+      goalWeightKg: 68,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    expect(screen.queryByLabelText(/profile summary/i)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Jamie' }))
+    const dialog = screen.getByRole('dialog', { name: 'Jamie' })
+
+    expect(within(dialog).getByText('168.0 cm')).toBeInTheDocument()
+    expect(within(dialog).getByText('Male')).toBeInTheDocument()
+    expect(within(dialog).getByText('68.0 kg')).toBeInTheDocument()
+  })
+
   it('edits profile details from the dashboard', async () => {
     const user = userEvent.setup()
     const existing = createProfile({

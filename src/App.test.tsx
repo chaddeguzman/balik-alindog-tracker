@@ -326,7 +326,7 @@ describe('Balik Alindog Tracker', () => {
 
     const dialog = screen.getByRole('dialog', { name: /edit profile/i })
     expect(within(dialog).getByLabelText(/activity level/i)).toHaveValue('')
-    expect(within(dialog).getByLabelText(/weekly loss target/i)).toHaveValue('0.5')
+    expect(within(dialog).getByRole('slider', { name: /weekly loss target/i })).toHaveValue('0.5')
   })
 
   it('does not calculate an adult TDEE target for a younger profile', () => {

@@ -29,6 +29,7 @@ export function TdeeSettingsFields({
         <input
           className="tdee-rate-slider"
           type="range"
+          aria-label="Weekly loss target"
           min="0.5"
           max="0.9"
           step="0.1"

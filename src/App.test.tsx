@@ -276,6 +276,8 @@ describe('Balik Alindog Tracker', () => {
     await user.selectOptions(within(dialog).getByLabelText(/category/i), 'food')
     await user.type(within(dialog).getByLabelText(/^calorie$/i), '240')
     await user.type(within(dialog).getByLabelText(/weight \(grams\)/i), '150')
+    await user.type(within(dialog).getByLabelText(/protein \(grams\)/i), '28')
+    await user.type(within(dialog).getByLabelText(/carbs \(grams\)/i), '6')
     await user.selectOptions(within(dialog).getByLabelText(/meal type/i), 'lunch')
     await user.type(within(dialog).getByLabelText(/remarks/i), 'Household recipe')
     await user.click(within(dialog).getByRole('button', { name: /^add food$/i }))
@@ -283,6 +285,8 @@ describe('Balik Alindog Tracker', () => {
     expect(await screen.findByText('Chicken Adobo')).toBeInTheDocument()
     expect(screen.getByText('240 kcal')).toBeInTheDocument()
     expect(screen.getByText('150 g')).toBeInTheDocument()
+    expect(screen.getByText('28 g')).toBeInTheDocument()
+    expect(screen.getByText('6 g')).toBeInTheDocument()
     expect(screen.getByText('Lunch')).toBeInTheDocument()
   })
 

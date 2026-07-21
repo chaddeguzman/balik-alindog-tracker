@@ -148,6 +148,8 @@ export function buildSharedFoodLibraryContext(foodLibrary: FoodLibraryEntry[]): 
       `category ${entry.category}`,
       `${entry.calories} kcal per ${entry.weightGrams} g`,
       `${caloriesPerGram.toFixed(4)} kcal/g`,
+      `protein ${entry.proteinGrams === undefined ? 'not recorded' : `${entry.proteinGrams} g`}`,
+      `carbs ${entry.carbsGrams === undefined ? 'not recorded' : `${entry.carbsGrams} g`}`,
       `meal type ${entry.mealType}`,
       `remarks ${cleanPromptValue(entry.remarks) || 'none'}`,
     ].join(' | ')

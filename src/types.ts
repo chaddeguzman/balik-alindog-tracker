@@ -37,6 +37,8 @@ export interface FoodLibraryEntry {
   food: string
   category: FoodCategory
   calories: number
+  proteinGrams?: number
+  carbsGrams?: number
   weightGrams: number
   mealType: MealType
   remarks: string

@@ -134,6 +134,8 @@ function assertFoodLibraryInput(input: {
   food: string
   category: FoodCategory
   calories: number
+  proteinGrams?: number
+  carbsGrams?: number
   weightGrams: number
   mealType: MealType
   remarks: string
@@ -144,6 +146,12 @@ function assertFoodLibraryInput(input: {
   if (!isFoodCategory(input.category)) throw new Error('Select a valid food category.')
   if (!Number.isFinite(input.calories) || input.calories < 0 || input.calories > 100_000) {
     throw new Error('Calories must be between 0 and 100,000.')
+  }
+  if (input.proteinGrams !== undefined && (!Number.isFinite(input.proteinGrams) || input.proteinGrams < 0 || input.proteinGrams > 100_000)) {
+    throw new Error('Protein must be between 0 and 100,000 grams.')
+  }
+  if (input.carbsGrams !== undefined && (!Number.isFinite(input.carbsGrams) || input.carbsGrams < 0 || input.carbsGrams > 100_000)) {
+    throw new Error('Carbs must be between 0 and 100,000 grams.')
   }
   if (!Number.isFinite(input.weightGrams) || input.weightGrams <= 0 || input.weightGrams > 100_000) {
     throw new Error('Weight must be greater than 0 and no more than 100,000 grams.')
@@ -240,6 +248,8 @@ function validateState(state: AppState): AppState {
       || typeof entry.remarks !== 'string'
       || typeof entry.createdAt !== 'string'
       || (entry.updatedAt !== undefined && typeof entry.updatedAt !== 'string')
+      || (entry.proteinGrams !== undefined && typeof entry.proteinGrams !== 'number')
+      || (entry.carbsGrams !== undefined && typeof entry.carbsGrams !== 'number')
     ) {
       throw new Error('Backup contains an invalid food entry.')
     }
@@ -517,6 +527,8 @@ export function createFoodLibraryEntry(input: {
   food: string
   category: FoodCategory
   calories: number
+  proteinGrams?: number
+  carbsGrams?: number
   weightGrams: number
   mealType: MealType
   remarks?: string
@@ -546,6 +558,8 @@ export function updateFoodLibraryEntry(
     food: string
     category: FoodCategory
     calories: number
+    proteinGrams?: number
+    carbsGrams?: number
     weightGrams: number
     mealType: MealType
     remarks?: string

@@ -144,6 +144,8 @@ describe('tracker data rules', () => {
       food: '  Chicken   Adobo ',
       category: 'food',
       calories: 240,
+      proteinGrams: 28,
+      carbsGrams: 6,
       weightGrams: 150,
       mealType: 'lunch',
       remarks: '  Household recipe  ',
@@ -153,6 +155,8 @@ describe('tracker data rules', () => {
     expect(added.foodLibrary[0]).toMatchObject({
       food: 'Chicken Adobo',
       calories: 240,
+      proteinGrams: 28,
+      carbsGrams: 6,
       weightGrams: 150,
       remarks: 'Household recipe',
     })
@@ -161,11 +165,13 @@ describe('tracker data rules', () => {
       food: 'Chicken Adobo',
       category: 'food',
       calories: 260,
+      proteinGrams: 30,
+      carbsGrams: 8,
       weightGrams: 150,
       mealType: 'dinner',
       remarks: 'With rice',
     })
-    expect(updated.foodLibrary[0]).toMatchObject({ calories: 260, mealType: 'dinner', updatedAt: expect.any(String) })
+    expect(updated.foodLibrary[0]).toMatchObject({ calories: 260, proteinGrams: 30, carbsGrams: 8, mealType: 'dinner', updatedAt: expect.any(String) })
     expect(deleteFoodLibraryEntry(updated, entry.id).foodLibrary).toEqual([])
   })
 

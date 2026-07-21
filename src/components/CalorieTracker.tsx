@@ -12,6 +12,8 @@ interface FoodLibraryInput {
   food: string
   category: FoodCategory
   calories: number
+  proteinGrams?: number
+  carbsGrams?: number
   weightGrams: number
   mealType: MealType
   remarks?: string
@@ -45,6 +47,8 @@ function FoodEntryForm({
   const [food, setFood] = useState(entry?.food ?? '')
   const [category, setCategory] = useState<FoodCategory>(entry?.category ?? 'food')
   const [calories, setCalories] = useState(entry?.calories.toString() ?? '')
+  const [proteinGrams, setProteinGrams] = useState(entry?.proteinGrams?.toString() ?? '')
+  const [carbsGrams, setCarbsGrams] = useState(entry?.carbsGrams?.toString() ?? '')
   const [weightGrams, setWeightGrams] = useState(entry?.weightGrams.toString() ?? '')
   const [mealType, setMealType] = useState<MealType>(entry?.mealType ?? 'flexible')
   const [remarks, setRemarks] = useState(entry?.remarks ?? '')
@@ -55,6 +59,8 @@ function FoodEntryForm({
       food,
       category,
       calories: Number(calories),
+      proteinGrams: proteinGrams === '' ? undefined : Number(proteinGrams),
+      carbsGrams: carbsGrams === '' ? undefined : Number(carbsGrams),
       weightGrams: Number(weightGrams),
       mealType,
       remarks,
@@ -83,6 +89,8 @@ function FoodEntryForm({
           <div><dt>Food</dt><dd>{food.trim()}</dd></div>
           <div><dt>Weight</dt><dd>{Number(weightGrams).toLocaleString()} g</dd></div>
           <div><dt>Calories</dt><dd>{Number(calories).toLocaleString()} kcal</dd></div>
+          <div><dt>Protein</dt><dd>{proteinGrams === '' ? '-' : `${Number(proteinGrams).toLocaleString()} g`}</dd></div>
+          <div><dt>Carbs</dt><dd>{carbsGrams === '' ? '-' : `${Number(carbsGrams).toLocaleString()} g`}</dd></div>
         </dl>
         <div className="form-actions">
           <button className="button secondary" type="button" onClick={() => setDuplicate(null)}>Cancel</button>
@@ -127,6 +135,16 @@ function FoodEntryForm({
         <label>
           Weight (grams)
           <input type="number" inputMode="decimal" required min="0.1" max="100000" step="0.1" value={weightGrams} onChange={(event) => setWeightGrams(event.target.value)} />
+        </label>
+      </div>
+      <div className="form-grid">
+        <label>
+          Protein (grams) <span className="optional">Optional</span>
+          <input type="number" inputMode="decimal" min="0" max="100000" step="0.1" value={proteinGrams} onChange={(event) => setProteinGrams(event.target.value)} />
+        </label>
+        <label>
+          Carbs (grams) <span className="optional">Optional</span>
+          <input type="number" inputMode="decimal" min="0" max="100000" step="0.1" value={carbsGrams} onChange={(event) => setCarbsGrams(event.target.value)} />
         </label>
       </div>
       <label>
@@ -212,6 +230,8 @@ export function CalorieTracker({
                   <th>Food</th>
                   <th>Category</th>
                   <th>Calorie</th>
+                  <th>Protein</th>
+                  <th>Carbs</th>
                   <th>Weight (grams)</th>
                   <th>Meal Type</th>
                   <th>Remarks</th>
@@ -224,6 +244,8 @@ export function CalorieTracker({
                     <td><strong>{entry.food}</strong></td>
                     <td><span className="food-label">{CATEGORY_LABELS[entry.category]}</span></td>
                     <td>{entry.calories.toLocaleString()} kcal</td>
+                    <td>{entry.proteinGrams === undefined ? '-' : `${entry.proteinGrams.toLocaleString()} g`}</td>
+                    <td>{entry.carbsGrams === undefined ? '-' : `${entry.carbsGrams.toLocaleString()} g`}</td>
                     <td>{entry.weightGrams.toLocaleString()} g</td>
                     <td>{MEAL_TYPE_LABELS[entry.mealType]}</td>
                     <td className="food-remarks">{entry.remarks || '-'}</td>

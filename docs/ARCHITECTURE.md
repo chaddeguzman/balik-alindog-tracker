@@ -27,8 +27,8 @@ Browser localStorage
 - Entries are sorted by their measurement date, not their save timestamp.
 - Goals and display preferences are mutable profile settings, not measurements.
 - Food-library entries belong to the household, not an individual profile.
-- Food duplicates are allowed after a warning and are identified by normalized food name plus weight in grams.
-- Stored calories describe the stored serving weight and can be scaled proportionally.
+- Food duplicates are allowed after a warning and are identified by normalized food name plus category-specific serving amount.
+- Stored calories describe the stored serving amount and can be scaled proportionally. Food uses grams, drinks use mL, and supplements use pcs.
 - TDEE activity and weekly-loss settings are profile-specific and must be configured together.
 
 ## Adult calorie-target estimate
@@ -57,7 +57,7 @@ SuggestionService
 └── GeminiSuggestionProvider
 ```
 
-The health chat sends a deliberately limited context object: active-profile details, goals, latest values, that profile's measurement history, eligible TDEE estimate status, and the shared household food library. It does not send other household profiles or raw backup data. Food-library context is labeled as reusable reference data rather than a record of consumption, and each entry includes a calories-per-gram value for proportional serving calculations. TDEE values are labeled as static estimates, and unavailable or below-minimum results cannot be treated as safe food budgets.
+The health chat sends a deliberately limited context object: active-profile details, goals, latest values, that profile's measurement history, eligible TDEE estimate status, and the shared household food library. It does not send other household profiles or raw backup data. Food-library context is labeled as reusable reference data rather than a record of consumption, and each entry includes a calories-per-serving-unit value for proportional serving calculations. TDEE values are labeled as static estimates, and unavailable or below-minimum results cannot be treated as safe food budgets.
 
 The browser build reads `HEALTH_API` into the `HEALTH_API` constant used by `health_track_api.js`, with `VITE_HEALTH_API` kept as a local-development fallback. Because the value is embedded in the public browser bundle, this is configuration rather than a true secret. Missing configuration disables live chat responses gracefully. A future version that needs a protected shared key should use a server-side proxy with authentication and rate limits.
 

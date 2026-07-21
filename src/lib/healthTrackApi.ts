@@ -139,15 +139,22 @@ function cleanPromptValue(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
 
+const FOOD_SERVING_UNITS: Record<FoodLibraryEntry['category'], string> = {
+  food: 'g',
+  drinks: 'mL',
+  supplement: 'pc',
+}
+
 export function buildSharedFoodLibraryContext(foodLibrary: FoodLibraryEntry[]): string {
   if (!foodLibrary.length) return 'No foods are saved in the shared household food library.'
   const foods = foodLibrary.map((entry) => {
-    const caloriesPerGram = entry.calories / entry.weightGrams
+    const servingUnit = FOOD_SERVING_UNITS[entry.category]
+    const caloriesPerServingUnit = entry.calories / entry.weightGrams
     return [
       `- ${cleanPromptValue(entry.food)}`,
       `category ${entry.category}`,
-      `${entry.calories} kcal per ${entry.weightGrams} g`,
-      `${caloriesPerGram.toFixed(4)} kcal/g`,
+      `${entry.calories} kcal per ${entry.weightGrams} ${servingUnit}`,
+      `${caloriesPerServingUnit.toFixed(4)} kcal/${servingUnit}`,
       `protein ${entry.proteinGrams === undefined ? 'not recorded' : `${entry.proteinGrams} g`}`,
       `carbs ${entry.carbsGrams === undefined ? 'not recorded' : `${entry.carbsGrams} g`}`,
       `meal type ${entry.mealType}`,
@@ -156,7 +163,7 @@ export function buildSharedFoodLibraryContext(foodLibrary: FoodLibraryEntry[]): 
   })
   return [
     'These are reusable foods available to the household. They are not a consumption log and do not prove that the active profile ate them.',
-    'Scale calories proportionally for a requested serving: requested grams / saved grams * saved calories.',
+    'Scale calories proportionally for a requested serving: requested serving amount / saved serving amount * saved calories. Use grams for food, mL for drinks, and pcs for supplements.',
     ...foods,
   ].join('\n')
 }

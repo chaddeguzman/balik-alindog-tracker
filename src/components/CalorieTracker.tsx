@@ -33,6 +33,18 @@ const MEAL_TYPE_LABELS: Record<MealType, string> = {
   flexible: 'Flexible',
 }
 
+const SERVING_UNIT_LABELS: Record<FoodCategory, string> = {
+  food: 'g',
+  drinks: 'mL',
+  supplement: 'pc',
+}
+
+const SERVING_FIELD_LABELS: Record<FoodCategory, string> = {
+  food: 'Weight (grams)',
+  drinks: 'Volume (mL)',
+  supplement: 'Serving count (pc)',
+}
+
 function FoodEntryForm({
   entries,
   entry,
@@ -53,6 +65,7 @@ function FoodEntryForm({
   const [mealType, setMealType] = useState<MealType>(entry?.mealType ?? 'flexible')
   const [remarks, setRemarks] = useState(entry?.remarks ?? '')
   const [duplicate, setDuplicate] = useState<FoodLibraryEntry | null>(null)
+  const servingUnit = SERVING_UNIT_LABELS[category]
 
   function currentInput(): FoodLibraryInput {
     return {
@@ -83,11 +96,11 @@ function FoodEntryForm({
       <div className="confirmation">
         <div className="notice warning">
           <strong>Possible duplicate food</strong>
-          <span>{duplicate.food} already exists at {duplicate.weightGrams.toLocaleString()} g. You can still add this entry.</span>
+          <span>{duplicate.food} already exists at {duplicate.weightGrams.toLocaleString()} {SERVING_UNIT_LABELS[duplicate.category]}. You can still add this entry.</span>
         </div>
         <dl className="confirmation-list">
           <div><dt>Food</dt><dd>{food.trim()}</dd></div>
-          <div><dt>Weight</dt><dd>{Number(weightGrams).toLocaleString()} g</dd></div>
+          <div><dt>Serving</dt><dd>{Number(weightGrams).toLocaleString()} {servingUnit}</dd></div>
           <div><dt>Calories</dt><dd>{Number(calories).toLocaleString()} kcal</dd></div>
           <div><dt>Protein</dt><dd>{proteinGrams === '' ? '-' : `${Number(proteinGrams).toLocaleString()} g`}</dd></div>
           <div><dt>Carbs</dt><dd>{carbsGrams === '' ? '-' : `${Number(carbsGrams).toLocaleString()} g`}</dd></div>
@@ -102,7 +115,7 @@ function FoodEntryForm({
 
   return (
     <form className="form-stack food-entry-form" onSubmit={submit}>
-      <p className="helper-text">Calories describe the entered serving weight and scale proportionally for food suggestions.</p>
+      <p className="helper-text">Calories describe the entered serving size and scale proportionally for food suggestions.</p>
       <label>
         Food
         <input autoFocus required maxLength={100} value={food} onChange={(event) => setFood(event.target.value)} />
@@ -133,7 +146,7 @@ function FoodEntryForm({
           <input type="number" inputMode="decimal" required min="0" max="100000" step="0.1" value={calories} onChange={(event) => setCalories(event.target.value)} />
         </label>
         <label>
-          Weight (grams)
+          {SERVING_FIELD_LABELS[category]}
           <input type="number" inputMode="decimal" required min="0.1" max="100000" step="0.1" value={weightGrams} onChange={(event) => setWeightGrams(event.target.value)} />
         </label>
       </div>
@@ -232,7 +245,7 @@ export function CalorieTracker({
                   <th>Calorie</th>
                   <th>Protein</th>
                   <th>Carbs</th>
-                  <th>Weight (grams)</th>
+                  <th>Serving</th>
                   <th>Meal Type</th>
                   <th>Remarks</th>
                   <th><span className="sr-only">Actions</span></th>
@@ -246,7 +259,7 @@ export function CalorieTracker({
                     <td>{entry.calories.toLocaleString()} kcal</td>
                     <td>{entry.proteinGrams === undefined ? '-' : `${entry.proteinGrams.toLocaleString()} g`}</td>
                     <td>{entry.carbsGrams === undefined ? '-' : `${entry.carbsGrams.toLocaleString()} g`}</td>
-                    <td>{entry.weightGrams.toLocaleString()} g</td>
+                    <td>{entry.weightGrams.toLocaleString()} {SERVING_UNIT_LABELS[entry.category]}</td>
                     <td>{MEAL_TYPE_LABELS[entry.mealType]}</td>
                     <td className="food-remarks">{entry.remarks || '-'}</td>
                     <td>

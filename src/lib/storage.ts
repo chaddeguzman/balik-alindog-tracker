@@ -154,7 +154,7 @@ function assertFoodLibraryInput(input: {
     throw new Error('Carbs must be between 0 and 100,000 grams.')
   }
   if (!Number.isFinite(input.weightGrams) || input.weightGrams <= 0 || input.weightGrams > 100_000) {
-    throw new Error('Weight must be greater than 0 and no more than 100,000 grams.')
+    throw new Error('Serving size must be greater than 0 and no more than 100,000.')
   }
   if (!isMealType(input.mealType)) throw new Error('Select a valid meal type.')
   if (input.remarks.length > 500) throw new Error('Remarks cannot exceed 500 characters.')
@@ -512,13 +512,14 @@ export function normalizeFoodName(value: string): string {
 
 export function findDuplicateFoodEntry(
   entries: FoodLibraryEntry[],
-  input: Pick<FoodLibraryEntry, 'food' | 'weightGrams'>,
+  input: Pick<FoodLibraryEntry, 'food' | 'category' | 'weightGrams'>,
   excludeId?: string,
 ): FoodLibraryEntry | undefined {
   const normalizedFood = normalizeFoodName(input.food)
   return entries.find((entry) =>
     entry.id !== excludeId
     && normalizeFoodName(entry.food) === normalizedFood
+    && entry.category === input.category
     && entry.weightGrams === input.weightGrams,
   )
 }

@@ -14,7 +14,7 @@ A private, browser-based tracker for daily weight and body-fat progress. It supp
 - Adult BMI chart with categories, target BMI, and a height-based general healthy-weight range
 - Growth-aware messaging for children and teens instead of applying adult BMI targets
 - Up to 10 browser-local profiles without accounts
-- Shared household food library with calories, serving weight, category, meal type, and remarks
+- Shared household food library with calories, category-specific serving size, protein, carbs, meal type, and remarks
 - Gemini-powered wellness chat that can use the active profile and shared food library as context
 - Light, dark, and system themes
 - Per-profile CSV export plus complete Backup and Upload restore

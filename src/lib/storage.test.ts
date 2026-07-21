@@ -185,8 +185,9 @@ describe('tracker data rules', () => {
     })
     const state = addFoodLibraryEntry(initialState, entry)
 
-    expect(findDuplicateFoodEntry(state.foodLibrary, { food: ' greek   yogurt ', weightGrams: 100 })).toBe(entry)
-    expect(findDuplicateFoodEntry(state.foodLibrary, { food: 'Greek Yogurt', weightGrams: 150 })).toBeUndefined()
+    expect(findDuplicateFoodEntry(state.foodLibrary, { food: ' greek   yogurt ', category: 'food', weightGrams: 100 })).toBe(entry)
+    expect(findDuplicateFoodEntry(state.foodLibrary, { food: 'Greek Yogurt', category: 'food', weightGrams: 150 })).toBeUndefined()
+    expect(findDuplicateFoodEntry(state.foodLibrary, { food: 'Greek Yogurt', category: 'drinks', weightGrams: 100 })).toBeUndefined()
     expect(addFoodLibraryEntry(state, createFoodLibraryEntry({
       food: 'Greek Yogurt',
       category: 'food',

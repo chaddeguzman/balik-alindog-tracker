@@ -290,6 +290,43 @@ describe('Balik Alindog Tracker', () => {
     expect(screen.getByText('Lunch')).toBeInTheDocument()
   })
 
+  it('uses mL and pc serving units for drinks and supplements', async () => {
+    const user = userEvent.setup()
+    const existing = createProfileWithTdee({
+      name: 'Ria',
+      preferredUnit: 'kg',
+      heightCm: 165,
+      birthDate: '1992-05-10',
+      gender: 'female',
+      currentWeightKg: 80,
+      goalWeightKg: 68,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+    await user.click(screen.getByRole('tab', { name: /calorie tracker/i }))
+    await user.click(screen.getByRole('button', { name: /^add food$/i }))
+
+    const drinkDialog = screen.getByRole('dialog', { name: /add food/i })
+    await user.type(within(drinkDialog).getByLabelText(/^food$/i), 'Protein Shake')
+    await user.selectOptions(within(drinkDialog).getByLabelText(/category/i), 'drinks')
+    await user.type(within(drinkDialog).getByLabelText(/^calorie$/i), '180')
+    await user.type(within(drinkDialog).getByLabelText(/volume \(ml\)/i), '300')
+    await user.click(within(drinkDialog).getByRole('button', { name: /^add food$/i }))
+
+    expect(await screen.findByText('300 mL')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /^add food$/i }))
+    const supplementDialog = screen.getByRole('dialog', { name: /add food/i })
+    await user.type(within(supplementDialog).getByLabelText(/^food$/i), 'Fish Oil')
+    await user.selectOptions(within(supplementDialog).getByLabelText(/category/i), 'supplement')
+    await user.type(within(supplementDialog).getByLabelText(/^calorie$/i), '10')
+    await user.type(within(supplementDialog).getByLabelText(/serving count \(pc\)/i), '1')
+    await user.click(within(supplementDialog).getByRole('button', { name: /^add food$/i }))
+
+    expect(await screen.findByText('1 pc')).toBeInTheDocument()
+  })
+
   it('shows an adult daily calorie estimate from profile TDEE settings', () => {
     const existing = createProfileWithTdee({
       name: 'Alex',

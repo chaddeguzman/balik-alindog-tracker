@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useMemo, useState, type ChangeEvent } from 'react'
 import {
   ADULT_HEALTHY_BMI_MAX,
   ADULT_HEALTHY_BMI_MIN,
@@ -12,7 +12,7 @@ import {
 } from '../lib/bmi'
 import { calculateAge } from '../lib/date'
 import { formatHeight, formatWeight } from '../lib/units'
-import type { Profile } from '../types'
+import type { Gender, Measurement, Profile } from '../types'
 
 interface Props {
   profile: Profile
@@ -20,69 +20,45 @@ interface Props {
   onSelectTargetWeight: (weightKg: number) => void
 }
 
-function genderLabel(gender: NonNullable<Profile['gender']>): string {
-  return { female: 'Female', male: 'Male' }[gender]
+function genderLabel(gender?: Gender): string {
+  if (gender === 'female') return 'Female'
+  if (gender === 'male') return 'Male'
+  return 'Missing'
 }
 
-export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: Props) {
-  const latest = profile.entries.at(-1)
-  if (!profile.heightCm || !profile.birthDate || !profile.gender || !latest) {
-    return (
-      <section className="card bmi-card incomplete-card">
-        <div>
-          <p className="eyebrow">Baseline profile</p>
-          <h2>Complete this person’s starting stats</h2>
-          <p>Add height, birthday, and gender to unlock automatically updated age and BMI guidance while keeping existing measurements intact.</p>
-        </div>
-        <button className="button primary" onClick={onCompleteBaseline}>Complete baseline</button>
-      </section>
-    )
-  }
+interface AdultBmiGuideProps {
+  profile: Profile
+  onSelectTargetWeight: (weightKg: number) => void
+  heightCm: number
+  bmi: number
+  category: string
+  age: number
+  baseline: Measurement
+  range: { minKg: number; maxKg: number }
+  middleWeightKg: number
+}
 
-  const heightCm = profile.heightCm
-  const bmi = calculateBmi(latest.weightKg, heightCm)
-  const age = calculateAge(profile.birthDate)
-  const isAdult = age >= 20
-  const baseline = profile.entries.find((entry) => entry.id === profile.baselineEntryId) ?? profile.entries[0]
-
-  if (!isAdult) {
-    return (
-      <section className="card bmi-card">
-        <div className="section-heading">
-          <div><p className="eyebrow">BMI guide</p><h2>Growth-aware guidance</h2><p className="baseline-meta">Age {age} · {genderLabel(profile.gender)} · Baseline {formatWeight(baseline.weightKg, profile.preferredUnit)}</p></div>
-          <div className="bmi-score"><strong>{bmi.toFixed(1)}</strong><span>current BMI</span></div>
-        </div>
-        <div className="notice warning child-bmi-notice">
-          <strong>Adult BMI ranges do not apply at age {age}.</strong>
-          <span>Children and teens need BMI-for-age percentiles based on age and sex. Discuss an appropriate weight goal with a qualified healthcare professional.</span>
-        </div>
-        <p className="bmi-disclaimer">
-          BMI is a screening measure, not a diagnosis.
-          <span className="guide-source">
-            Source: <a href="https://www.calculator.net/bmi-calculator.html" target="_blank" rel="noreferrer">https://www.calculator.net/bmi-calculator.html</a>
-          </span>
-        </p>
-      </section>
-    )
-  }
-
-  const range = adultHealthyWeightRange(heightCm)
-  const middleWeightKg = (range.minKg + range.maxKg) / 2
-  const category = adultBmiCategory(bmi)
+function AdultBmiGuide({
+  profile,
+  onSelectTargetWeight,
+  heightCm,
+  bmi,
+  category,
+  age,
+  baseline,
+  range,
+  middleWeightKg,
+}: AdultBmiGuideProps) {
   const savedTarget = profile.goalWeightKg
   const savedTargetBmi = calculateBmi(savedTarget, heightCm)
   const savedClampedWeight = clampWeightToHealthyRange(savedTarget, heightCm)
   const savedClampedBmi = calculateBmi(savedClampedWeight, heightCm)
 
   // Draft preview state: starts clamped to the healthy range so the marker is always visible.
+  // A key prop on this component (tied to profile.goalWeightKg) resets this state
+  // when the saved target changes externally, replacing the need for a syncing useEffect.
   const [draftBmi, setDraftBmi] = useState(savedClampedBmi)
   const [drafting, setDrafting] = useState(false)
-
-  // Keep the draft in sync when the saved target (or height) changes externally.
-  useEffect(() => {
-    setDraftBmi(calculateBmi(clampWeightToHealthyRange(profile.goalWeightKg, heightCm), heightCm))
-    setDrafting(false)
-  }, [profile.goalWeightKg, heightCm])
 
   const draftWeightKg = useMemo(() => weightKgForHealthyBmi(draftBmi, heightCm), [draftBmi, heightCm])
   const draftBmiRounded = Number(draftBmi.toFixed(1))
@@ -156,5 +132,67 @@ export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: 
         </span>
       </p>
     </section>
+  )
+}
+
+export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: Props) {
+  const latest = profile.entries.at(-1)
+  if (!profile.heightCm || !profile.birthDate || !profile.gender || !latest) {
+    return (
+      <section className="card bmi-card incomplete-card">
+        <div>
+          <p className="eyebrow">Baseline profile</p>
+          <h2>Complete this person’s starting stats</h2>
+          <p>Add height, birthday, and gender to unlock automatically updated age and BMI guidance while keeping existing measurements intact.</p>
+        </div>
+        <button className="button primary" onClick={onCompleteBaseline}>Complete baseline</button>
+      </section>
+    )
+  }
+
+  const heightCm = profile.heightCm
+  const bmi = calculateBmi(latest.weightKg, heightCm)
+  const age = calculateAge(profile.birthDate)
+  const isAdult = age >= 20
+  const baseline = profile.entries.find((entry) => entry.id === profile.baselineEntryId) ?? profile.entries[0]
+
+  if (!isAdult) {
+    return (
+      <section className="card bmi-card">
+        <div className="section-heading">
+          <div><p className="eyebrow">BMI guide</p><h2>Growth-aware guidance</h2><p className="baseline-meta">Age {age} · {genderLabel(profile.gender)} · Baseline {formatWeight(baseline.weightKg, profile.preferredUnit)}</p></div>
+          <div className="bmi-score"><strong>{bmi.toFixed(1)}</strong><span>current BMI</span></div>
+        </div>
+        <div className="notice warning child-bmi-notice">
+          <strong>Adult BMI ranges do not apply at age {age}.</strong>
+          <span>Children and teens need BMI-for-age percentiles based on age and sex. Discuss an appropriate weight goal with a qualified healthcare professional.</span>
+        </div>
+        <p className="bmi-disclaimer">
+          BMI is a screening measure, not a diagnosis.
+          <span className="guide-source">
+            Source: <a href="https://www.calculator.net/bmi-calculator.html" target="_blank" rel="noreferrer">https://www.calculator.net/bmi-calculator.html</a>
+          </span>
+        </p>
+      </section>
+    )
+  }
+
+  const range = adultHealthyWeightRange(heightCm)
+  const middleWeightKg = (range.minKg + range.maxKg) / 2
+  const category = adultBmiCategory(bmi)
+
+  return (
+    <AdultBmiGuide
+      key={profile.goalWeightKg}
+      profile={profile}
+      onSelectTargetWeight={onSelectTargetWeight}
+      heightCm={heightCm}
+      bmi={bmi}
+      category={category}
+      age={age}
+      baseline={baseline}
+      range={range}
+      middleWeightKg={middleWeightKg}
+    />
   )
 }

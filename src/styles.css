@@ -246,7 +246,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .bmi-score span { margin-top: 5px; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
 .baseline-meta { margin: 6px 0 0; color: var(--muted); font-size: 0.78rem; }
 .bmi-scale { position: relative; padding-top: 31px; margin: 10px 0 24px; }
-.bmi-marker { position: absolute; top: 0; z-index: 2; width: 2px; height: 43px; background: var(--text); transform: translateX(-1px); }
+.bmi-marker { position: absolute; top: 0; z-index: 2; width: 2px; height: 43px; background: var(--text); transform: translateX(-1px); pointer-events: none; }
 .bmi-marker::after { content: ''; position: absolute; left: -4px; bottom: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--text); border: 2px solid var(--surface); }
 .bmi-marker span { position: absolute; top: 0; left: 50%; transform: translateX(-50%); padding: 2px 6px; border-radius: 5px; background: var(--text); color: var(--surface); font-size: 0.65rem; font-weight: 800; white-space: nowrap; }
 .bmi-segments { height: 64px; display: flex; overflow: hidden; border-radius: 12px; color: #173025; }
@@ -266,8 +266,19 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 .bmi-range-values div { min-width: 0; padding: 9px; border-radius: 10px; background: var(--surface); }
 .bmi-range-values dt { color: var(--muted); font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
 .bmi-range-values dd { margin: 3px 0 0; font-size: 0.82rem; font-weight: 800; overflow-wrap: anywhere; }
-.bmi-target-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
-.bmi-target-actions button { min-height: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--primary); font-size: 0.72rem; font-weight: 800; }
+.bmi-target-slider { position: absolute; top: 31px; left: 0; width: 100%; height: 64px; min-height: 64px; margin: 0; padding: 0; border: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.bmi-target-slider:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 35%, transparent); outline-offset: 2px; }
+.bmi-target-slider::-webkit-slider-runnable-track { height: 64px; background: transparent; }
+.bmi-target-slider::-moz-range-track { height: 64px; background: transparent; }
+.bmi-target-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; margin-top: 23px; border: 3px solid var(--surface); border-radius: 50%; background: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+.bmi-target-slider::-moz-range-thumb { width: 18px; height: 18px; border: 3px solid var(--surface); border-radius: 50%; background: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+.bmi-target-marker { position: absolute; top: 0; z-index: 3; width: 2px; height: 43px; background: var(--primary); transform: translateX(-1px); pointer-events: none; }
+.bmi-target-marker::after { content: ''; position: absolute; left: -4px; bottom: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); border: 2px solid var(--surface); }
+.bmi-target-marker span { position: absolute; top: 0; left: 50%; transform: translateX(-50%); padding: 2px 6px; border-radius: 5px; background: var(--primary); color: #fff; font-size: 0.65rem; font-weight: 800; white-space: nowrap; }
+.bmi-target-box { position: relative; }
+.bmi-target-box.is-drafting { border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--border)); background: var(--primary-soft); }
+.bmi-target-box.is-drafting span { color: var(--primary); }
+.bmi-save-target { margin-top: 6px; align-self: flex-start; }
 .bmi-disclaimer { margin: 16px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
 .bmi-disclaimer a { color: var(--primary); font-weight: 800; text-underline-offset: 3px; }
 .guide-source { display: block; max-width: 100%; margin-top: 7px; padding-bottom: 3px; overflow-x: auto; white-space: nowrap; }

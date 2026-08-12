@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import App from './App'
@@ -230,6 +230,36 @@ describe('Balik Alindog Tracker', () => {
     expect(screen.getByRole('button', { name: /3m/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /6m/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /all/i })).not.toBeInTheDocument()
+  })
+
+  it('previews and saves a target weight via the BMI draggable slider', async () => {
+    const user = userEvent.setup()
+    const existing = createProfileWithTdee({
+      name: 'Mika',
+      preferredUnit: 'kg',
+      heightCm: 165,
+      birthDate: '1992-05-10',
+      gender: 'female',
+      currentWeightKg: 72,
+      goalWeightKg: 65,
+    })
+    saveState(addProfile(initialState, existing))
+
+    render(<App />)
+
+    const slider = screen.getByRole('slider', { name: /target bmi/i })
+    expect(Number(slider.getAttribute('aria-valuetext')?.split(' ')[0])).toBeCloseTo(23.9, 1)
+    expect(screen.queryByRole('button', { name: /save target/i })).not.toBeInTheDocument()
+
+    fireEvent.change(slider, { target: { value: '23.5' } })
+
+    expect(screen.getByRole('button', { name: /save target/i })).toBeInTheDocument()
+    expect(screen.getByText(/preview target/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /save target/i }))
+    expect(await screen.findByText(/target weight updated from the bmi guide/i)).toBeInTheDocument()
+    expect(screen.getByText(/your selected target/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /save target/i })).not.toBeInTheDocument()
   })
 
   it('shows adult body-fat guidance and can set the suggested goal', async () => {

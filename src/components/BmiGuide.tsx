@@ -1,4 +1,15 @@
-import { adultBmiCategory, adultHealthyWeightRange, calculateBmi } from '../lib/bmi'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import {
+  ADULT_HEALTHY_BMI_MAX,
+  ADULT_HEALTHY_BMI_MIN,
+  adultBmiCategory,
+  adultHealthyWeightRange,
+  bmiScalePosition,
+  calculateBmi,
+  clampWeightToHealthyRange,
+  healthyBmiScalePosition,
+  weightKgForHealthyBmi,
+} from '../lib/bmi'
 import { calculateAge } from '../lib/date'
 import { formatHeight, formatWeight } from '../lib/units'
 import type { Profile } from '../types'
@@ -7,10 +18,6 @@ interface Props {
   profile: Profile
   onCompleteBaseline: () => void
   onSelectTargetWeight: (weightKg: number) => void
-}
-
-function markerPosition(bmi: number): string {
-  return `${Math.max(0, Math.min(100, ((bmi - 14) / 26) * 100))}%`
 }
 
 function genderLabel(gender: NonNullable<Profile['gender']>): string {
@@ -32,7 +39,8 @@ export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: 
     )
   }
 
-  const bmi = calculateBmi(latest.weightKg, profile.heightCm)
+  const heightCm = profile.heightCm
+  const bmi = calculateBmi(latest.weightKg, heightCm)
   const age = calculateAge(profile.birthDate)
   const isAdult = age >= 20
   const baseline = profile.entries.find((entry) => entry.id === profile.baselineEntryId) ?? profile.entries[0]
@@ -58,30 +66,71 @@ export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: 
     )
   }
 
-  const range = adultHealthyWeightRange(profile.heightCm)
+  const range = adultHealthyWeightRange(heightCm)
   const middleWeightKg = (range.minKg + range.maxKg) / 2
   const category = adultBmiCategory(bmi)
-  const targetBmi = calculateBmi(profile.goalWeightKg, profile.heightCm)
+  const savedTarget = profile.goalWeightKg
+  const savedTargetBmi = calculateBmi(savedTarget, heightCm)
+  const savedClampedWeight = clampWeightToHealthyRange(savedTarget, heightCm)
+  const savedClampedBmi = calculateBmi(savedClampedWeight, heightCm)
+
+  // Draft preview state: starts clamped to the healthy range so the marker is always visible.
+  const [draftBmi, setDraftBmi] = useState(savedClampedBmi)
+  const [drafting, setDrafting] = useState(false)
+
+  // Keep the draft in sync when the saved target (or height) changes externally.
+  useEffect(() => {
+    setDraftBmi(calculateBmi(clampWeightToHealthyRange(profile.goalWeightKg, heightCm), heightCm))
+    setDrafting(false)
+  }, [profile.goalWeightKg, heightCm])
+
+  const draftWeightKg = useMemo(() => weightKgForHealthyBmi(draftBmi, heightCm), [draftBmi, heightCm])
+  const draftBmiRounded = Number(draftBmi.toFixed(1))
+  const isPreviewing = drafting && Math.abs(draftWeightKg - savedTarget) > 0.05
+  const displayWeightKg = isPreviewing ? draftWeightKg : savedTarget
+  const displayBmi = isPreviewing ? draftBmiRounded : savedTargetBmi
+
+  function handleDraftChange(event: ChangeEvent<HTMLInputElement>) {
+    setDraftBmi(Number(event.target.value))
+    setDrafting(true)
+  }
+
+  function saveDraft() {
+    onSelectTargetWeight(draftWeightKg)
+    setDrafting(false)
+  }
 
   return (
     <section className="card bmi-card">
       <div className="section-heading bmi-heading">
         <div>
           <p className="eyebrow">BMI guide</p>
-          <h2>A general guide for {formatHeight(profile.heightCm, profile.preferredUnit)}</h2>
+          <h2>A general guide for {formatHeight(heightCm, profile.preferredUnit)}</h2>
           <p className="baseline-meta">Age {age} · {genderLabel(profile.gender)} · Baseline {formatWeight(baseline.weightKg, profile.preferredUnit)}</p>
         </div>
         <div className="bmi-score"><strong>{bmi.toFixed(1)}</strong><span>{category}</span></div>
       </div>
 
       <div className="bmi-scale" aria-label={`Current BMI ${bmi.toFixed(1)}, categorized as ${category}`}>
-        <div className="bmi-marker" style={{ left: markerPosition(bmi) }}><span>Current</span></div>
+        <div className="bmi-marker bmi-marker-current" style={{ left: `${bmiScalePosition(bmi)}%` }}><span>Current</span></div>
         <div className="bmi-segments" aria-hidden="true">
-          <span className="under"><b>Underweight</b><small>&lt;18.5</small></span>
+          <span className="under"><b>Underweight</b><small>{'<'}</small>18.5</span>
           <span className="healthy"><b>Healthy</b><small>18.5–24.9</small></span>
           <span className="over"><b>Overweight</b><small>25–29.9</small></span>
           <span className="obese"><b>Obesity</b><small>30+</small></span>
         </div>
+        <div className="bmi-target-marker" style={{ left: `${healthyBmiScalePosition(draftBmi)}%` }} aria-hidden="true"><span>Target</span></div>
+        <input
+          className="bmi-target-slider"
+          type="range"
+          min={ADULT_HEALTHY_BMI_MIN}
+          max={ADULT_HEALTHY_BMI_MAX}
+          step={0.1}
+          value={draftBmi}
+          aria-label="Target BMI"
+          aria-valuetext={`${draftBmi.toFixed(1)} BMI, ${formatWeight(draftWeightKg, profile.preferredUnit)}`}
+          onChange={handleDraftChange}
+        />
       </div>
 
       <div className="bmi-summary-grid">
@@ -92,13 +141,13 @@ export function BmiGuide({ profile, onCompleteBaseline, onSelectTargetWeight }: 
             <div><dt>Mid</dt><dd>{formatWeight(middleWeightKg, profile.preferredUnit)}</dd></div>
             <div><dt>High</dt><dd>{formatWeight(range.maxKg, profile.preferredUnit)}</dd></div>
           </dl>
-          <div className="bmi-target-actions" aria-label="Set target weight from healthy BMI range">
-            <button type="button" onClick={() => onSelectTargetWeight(range.minKg)}>Use low</button>
-            <button type="button" onClick={() => onSelectTargetWeight(middleWeightKg)}>Use middle</button>
-            <button type="button" onClick={() => onSelectTargetWeight(range.maxKg)}>Use high</button>
-          </div>
         </div>
-        <div><span>Your selected target</span><strong>{formatWeight(profile.goalWeightKg, profile.preferredUnit)}</strong><small>BMI {targetBmi.toFixed(1)} · {adultBmiCategory(targetBmi)}</small></div>
+        <div className={`bmi-target-box ${isPreviewing ? 'is-drafting' : ''}`}>
+          <span>{isPreviewing ? 'Preview target' : 'Your selected target'}</span>
+          <strong>{formatWeight(displayWeightKg, profile.preferredUnit)}</strong>
+          <small>BMI {displayBmi.toFixed(1)} · {adultBmiCategory(displayBmi)}</small>
+          {isPreviewing && <button className="button primary compact bmi-save-target" type="button" onClick={saveDraft}>Save target</button>}
+        </div>
       </div>
       <p className="bmi-disclaimer">
         Adult BMI is a screening measure, not a diagnosis or personalized medical target. Consider health history, body composition, and professional advice when choosing a goal.

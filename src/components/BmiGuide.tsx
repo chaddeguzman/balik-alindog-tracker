@@ -66,6 +66,11 @@ function AdultBmiGuide({
   const displayWeightKg = isPreviewing ? draftWeightKg : savedTarget
   const displayBmi = isPreviewing ? draftBmiRounded : savedTargetBmi
 
+  // Constrain the draggable track to the healthy band (18.5–24.9) on the 14–40 scale
+  // so the thumb only moves within the green segment and its position matches the markers.
+  const bandLeft = bmiScalePosition(ADULT_HEALTHY_BMI_MIN)
+  const bandWidth = bmiScalePosition(ADULT_HEALTHY_BMI_MAX) - bandLeft
+
   function handleDraftChange(event: ChangeEvent<HTMLInputElement>) {
     setDraftBmi(Number(event.target.value))
     setDrafting(true)
@@ -105,6 +110,7 @@ function AdultBmiGuide({
           value={draftBmi}
           aria-label="Target BMI"
           aria-valuetext={`${draftBmi.toFixed(1)} BMI, ${formatWeight(draftWeightKg, profile.preferredUnit)}`}
+          style={{ left: `${bandLeft}%`, width: `${bandWidth}%` }}
           onChange={handleDraftChange}
         />
       </div>
